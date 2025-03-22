@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"github.com/PabloPerdolie/event-manager/notification-service/internal/domain"
 	"github.com/pkg/errors"
 	"strings"
 
@@ -25,8 +26,8 @@ func New(config config.SMTPConfig, notifyRepo NotificationRepo) *NotificationSer
 	}
 }
 
-func (s *NotificationService) ProcessNotification(ctx context.Context, message *model.NotificationMessage) error {
-	emailContent, err := message.GenerateEmailContent()
+func (s *NotificationService) ProcessNotification(ctx context.Context, message domain.NotificationMessage) error {
+	emailContent, err := GenerateEmailContent(message)
 	if err != nil {
 		return errors.WithMessage(err, "generate email content")
 	}
@@ -47,8 +48,8 @@ func (s *NotificationService) GetStats() map[string]interface{} {
 }
 
 func (s *NotificationService) getSupportedEvents() []string {
-	events := make([]string, 0, len(model.SupportedEvents))
-	for event := range model.SupportedEvents {
+	events := make([]string, 0, len(SupportedEvents))
+	for event := range SupportedEvents {
 		events = append(events, event)
 	}
 	return events

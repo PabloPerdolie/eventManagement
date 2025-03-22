@@ -4,13 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/PabloPerdolie/event-manager/notification-service/internal/domain"
 	"github.com/PabloPerdolie/event-manager/notification-service/internal/model"
 	"github.com/streadway/amqp"
 	"go.uber.org/zap"
 )
 
 type NotificationService interface {
-	ProcessNotification(ctx context.Context, message *model.NotificationMessage) error
+	ProcessNotification(ctx context.Context, message domain.NotificationMessage) error
 }
 
 type NotifyHandler struct {
@@ -30,14 +31,14 @@ func (c NotifyHandler) ProcessMessage(msg amqp.Delivery) {
 
 	ctx := context.Background()
 
-	var notification model.NotificationMessage
+	var notification domain.NotificationMessage
 	if err := json.Unmarshal(msg.Body, &notification); err != nil {
 		c.logger.Errorf("Failed to unmarshal message: %v", err)
 		msg.Reject(false)
 		return
 	}
 
-	err := c.service.ProcessNotification(ctx, &notification)
+	err := c.service.ProcessNotification(ctx, notification)
 	switch {
 	case errors.Is(err, model.ErrUnsupportedEventType):
 		msg.Reject(false)
