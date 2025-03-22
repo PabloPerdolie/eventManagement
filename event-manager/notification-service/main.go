@@ -10,7 +10,6 @@ import (
 
 	"github.com/PabloPerdolie/event-manager/notification-service/internal/assembly"
 	"github.com/PabloPerdolie/event-manager/notification-service/internal/config"
-	"github.com/PabloPerdolie/event-manager/notification-service/internal/consumer"
 	"github.com/PabloPerdolie/event-manager/notification-service/internal/routes"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -36,22 +35,14 @@ func main() {
 		sugar.Fatalf("Failed to load config: %v", err)
 	}
 
-	locator, err := assembly.NewServiceLocator(cfg, sugar)
+	locator, err := assembly.NewLocator(cfg, sugar)
 	if err != nil {
 		sugar.Fatalf("Failed to initialize service locator: %v", err)
 	}
 	defer locator.Close()
 
-	rabbitConsumer := consumer.New(locator.Service, cfg, sugar)
-	go func() {
-		sugar.Info("Starting RabbitMQ consumer...")
-		if err := rabbitConsumer.Start(); err != nil {
-			sugar.Fatalf("Failed to start RabbitMQ consumer: %v", err)
-		}
-	}()
-
 	router := gin.Default()
-	routes.SetupRoutes(router, locator.Handler)
+	routes.SetupRoutes(router, &locator.Controllers)
 
 	srv := &http.Server{
 		Addr:    ":" + cfg.Port,

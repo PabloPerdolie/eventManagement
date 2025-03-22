@@ -1,26 +1,29 @@
 package consumer
 
 import (
-	"fmt"
+	"github.com/pkg/errors"
 
 	"github.com/PabloPerdolie/event-manager/notification-service/internal/config"
-	"github.com/PabloPerdolie/event-manager/notification-service/internal/service"
 	"github.com/streadway/amqp"
 	"go.uber.org/zap"
 )
 
+type Handler interface {
+	ProcessMessage(msg amqp.Delivery)
+}
+
 type RabbitMQConsumer struct {
-	service    *service.Service
+	handler    Handler
 	config     *config.Config
 	logger     *zap.SugaredLogger
 	connection *amqp.Connection
 	channel    *amqp.Channel
 }
 
-func New(svc *service.Service, cfg *config.Config, logger *zap.SugaredLogger) *RabbitMQConsumer {
+func New(handler Handler, config *config.Config, logger *zap.SugaredLogger) *RabbitMQConsumer {
 	return &RabbitMQConsumer{
-		service: svc,
-		config:  cfg,
+		handler: handler,
+		config:  config,
 		logger:  logger,
 	}
 }
@@ -29,13 +32,13 @@ func (c *RabbitMQConsumer) Start() error {
 	var err error
 	c.connection, err = amqp.Dial(c.config.RabbitMQ.GetRabbitMQURL())
 	if err != nil {
-		return fmt.Errorf("failed to connect to RabbitMQ: %w", err)
+		return errors.WithMessage(err, "connect to RabbitMQ")
 	}
 
 	c.channel, err = c.connection.Channel()
 	if err != nil {
 		c.connection.Close()
-		return fmt.Errorf("failed to open a channel: %w", err)
+		return errors.WithMessage(err, "open a channel")
 	}
 
 	queue, err := c.channel.QueueDeclare(
@@ -48,7 +51,7 @@ func (c *RabbitMQConsumer) Start() error {
 	)
 	if err != nil {
 		c.cleanup()
-		return fmt.Errorf("failed to declare a queue: %w", err)
+		return errors.WithMessage(err, "declare a queue")
 	}
 
 	err = c.channel.Qos(
@@ -58,7 +61,7 @@ func (c *RabbitMQConsumer) Start() error {
 	)
 	if err != nil {
 		c.cleanup()
-		return fmt.Errorf("failed to set QoS: %w", err)
+		return errors.WithMessage(err, "set QoS")
 	}
 
 	msgs, err := c.channel.Consume(
@@ -72,13 +75,13 @@ func (c *RabbitMQConsumer) Start() error {
 	)
 	if err != nil {
 		c.cleanup()
-		return fmt.Errorf("failed to register a consumer: %w", err)
+		return errors.WithMessage(err, "register a consumer")
 	}
 
 	c.logger.Infof("Connected to RabbitMQ and consuming from queue: %s", c.config.RabbitMQ.Queue)
 
 	for msg := range msgs {
-		c.processMessage(msg)
+		c.handler.ProcessMessage(msg)
 	}
 
 	return nil

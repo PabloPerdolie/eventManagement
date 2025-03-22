@@ -1,38 +1,45 @@
 package handler
 
 import (
-    "net/http"
-    "time"
+	"github.com/PabloPerdolie/event-manager/notification-service/internal/domain"
+	"go.uber.org/zap"
+	"net/http"
+	"time"
 
-    "github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin"
 )
 
-// Health represents the health status of the service
-type Health struct {
-    Status    string `json:"status"`
-    Timestamp string `json:"timestamp"`
-    Version   string `json:"version"`
-    Service   string `json:"service"`
+type Service interface {
+	GetStats() map[string]interface{}
 }
 
-// HealthCheck handles the health check endpoint
+type Handler struct {
+	service Service
+	logger  *zap.SugaredLogger
+}
+
+func New(service Service) *Handler {
+	return &Handler{
+		service: service,
+	}
+}
+
 func (h *Handler) HealthCheck(c *gin.Context) {
-    health := Health{
-        Status:    "UP",
-        Timestamp: time.Now().Format(time.RFC3339),
-        Version:   "1.0.0",
-        Service:   "notification-service",
-    }
+	health := domain.Health{
+		Status:    "UP",
+		Timestamp: time.Now().Format(time.RFC3339),
+		Version:   "1.0.0",
+		Service:   "notification-service",
+	}
 
-    c.JSON(http.StatusOK, health)
+	c.JSON(http.StatusOK, health)
 }
 
-// ServiceInfo returns information about the notification service
 func (h *Handler) ServiceInfo(c *gin.Context) {
-    stats := h.service.Notification.GetStats()
-    stats["service"] = "notification-service"
-    stats["version"] = "1.0.0"
-    stats["timestamp"] = time.Now().Format(time.RFC3339)
+	stats := h.service.GetStats()
+	stats["service"] = "notification-service"
+	stats["version"] = "1.0.0"
+	stats["timestamp"] = time.Now().Format(time.RFC3339)
 
-    c.JSON(http.StatusOK, stats)
+	c.JSON(http.StatusOK, stats)
 }

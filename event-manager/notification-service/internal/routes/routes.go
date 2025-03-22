@@ -5,12 +5,16 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func SetupRoutes(router *gin.Engine, h *handler.Handler) {
+type Controllers struct {
+	HealthCtrl handler.Handler
+}
+
+func SetupRoutes(router *gin.Engine, c *Controllers) {
 	v1 := router.Group("/api/v1")
 	{
-		v1.GET("/health", h.HealthCheck)
-		v1.GET("/info", h.ServiceInfo)
+		v1.GET("/health", c.HealthCtrl.HealthCheck)
+		v1.GET("/info", c.HealthCtrl.ServiceInfo)
 	}
 
-	router.GET("/health", h.HealthCheck)
+	router.GET("/health", c.HealthCtrl.HealthCheck)
 }
