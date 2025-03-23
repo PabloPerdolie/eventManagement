@@ -6,7 +6,8 @@ import (
 )
 
 type Controllers struct {
-	HealthCtrl handler.Handler
+	HealthCtrl  handler.Handler
+	CommentCtrl *handler.CommentHandler
 }
 
 func SetupRoutes(router *gin.Engine, c *Controllers) {
@@ -14,6 +15,14 @@ func SetupRoutes(router *gin.Engine, c *Controllers) {
 	{
 		v1.GET("/health", c.HealthCtrl.HealthCheck)
 		v1.GET("/info", c.HealthCtrl.ServiceInfo)
+
+		comments := v1.Group("/comments")
+		{
+			comments.GET("/:id", c.CommentCtrl.GetCommentById)
+			comments.GET("/event/:eventId", c.CommentCtrl.GetCommentsByEventId)
+			comments.DELETE("/:id", c.CommentCtrl.DeleteComment)
+			comments.PUT("/:id/read", c.CommentCtrl.MarkCommentAsRead)
+		}
 	}
 
 	router.GET("/health", c.HealthCtrl.HealthCheck)
