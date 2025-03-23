@@ -4,7 +4,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/PabloPerdolie/event-manager/notification-service/internal/config"
-	"github.com/streadway/amqp"
+	amqp "github.com/rabbitmq/amqp091-go"
 	"go.uber.org/zap"
 )
 
