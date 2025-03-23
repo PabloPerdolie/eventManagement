@@ -1,4 +1,4 @@
-module github.com/yourusername/event-management/core-service
+module github.com/PabloPerdolie/event-manager/core-service
 
 go 1.24
 
