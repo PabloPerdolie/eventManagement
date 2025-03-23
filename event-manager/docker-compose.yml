@@ -34,8 +34,8 @@ services:
   # Сервис уведомлений
   notification-service:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: notification-service/
+      dockerfile: notification-service/Dockerfile
     container_name: notification-service
     ports:
       - "8082:8082"

@@ -1,0 +1,8 @@
+{
+  "event": "event_created",
+  "data": {
+    "event_id": 1,
+    "title": "Team Meeting",
+    "user_email": "parusov.pashka@ya.ru"
+  }
+}
