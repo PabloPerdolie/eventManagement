@@ -56,7 +56,37 @@ func New() (*Config, error) {
 
 	rabbitQueue := os.Getenv("RABBITMQ_QUEUE")
 	if rabbitQueue == "" {
-		rabbitQueue = "notifications"
+		rabbitQueue = "comments"
+	}
+
+	postgresHost := os.Getenv("POSTGRES_HOST")
+	if postgresHost == "" {
+		postgresHost = "localhost"
+	}
+
+	postgresPort := os.Getenv("POSTGRES_PORT")
+	if postgresPort == "" {
+		postgresPort = "5672"
+	}
+
+	postgresUser := os.Getenv("POSTGRES_USER")
+	if postgresUser == "" {
+		postgresUser = "test"
+	}
+
+	postgresPassword := os.Getenv("POSTGRES_PASSWORD")
+	if postgresPassword == "" {
+		postgresPassword = "test"
+	}
+
+	postgresDBName := os.Getenv("POSTGRES_DBNAME")
+	if postgresDBName == "" {
+		postgresDBName = "test"
+	}
+
+	postgresSSLMode := os.Getenv("POSTGRES_SSLMODE")
+	if postgresSSLMode == "" {
+		postgresSSLMode = "false"
 	}
 
 	return &Config{
@@ -68,6 +98,14 @@ func New() (*Config, error) {
 			Password: rabbitPassword,
 			Queue:    rabbitQueue,
 		},
+		Postgres: Postgres{
+			Host:     postgresHost,
+			Port:     postgresPort,
+			User:     postgresUser,
+			Password: postgresPassword,
+			DBName:   postgresDBName,
+			SSLMode:  postgresSSLMode,
+		},
 	}, nil
 }
 
@@ -75,7 +113,7 @@ func (c *RabbitMQ) GetRabbitMQURL() string {
 	return fmt.Sprintf("amqp://%s:%s@%s:%s/", c.Username, c.Password, c.Host, c.Port)
 }
 
-func (p Postgres) GetDSN() string {
+func (p *Postgres) GetDSN() string {
 	return fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
 		p.Host, p.Port, p.User, p.Password, p.DBName, p.SSLMode)
 }

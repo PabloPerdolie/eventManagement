@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -14,9 +13,6 @@ import (
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 	"github.com/yourusername/event-management/core-service/internal/config"
-	"github.com/yourusername/event-management/core-service/internal/handler"
-	"github.com/yourusername/event-management/core-service/internal/repository"
-	"github.com/yourusername/event-management/core-service/internal/service"
 	"go.uber.org/zap"
 )
 
@@ -54,7 +50,7 @@ func main() {
 
 	// Initialize router
 	router := gin.Default()
-	
+
 	// Register API routes
 	api := router.Group("/api/v1")
 	{
@@ -65,19 +61,19 @@ func main() {
 			events.GET("/:id", h.GetEvent)
 			events.PUT("/:id", h.UpdateEvent)
 			events.DELETE("/:id", h.DeleteEvent)
-			
+
 			// Budget routes
 			events.GET("/:id/budget", h.GetEventBudget)
 			events.POST("/:id/budget", h.AddBudgetItem)
 			events.PUT("/:id/budget/:itemId", h.UpdateBudgetItem)
 			events.DELETE("/:id/budget/:itemId", h.DeleteBudgetItem)
-			
+
 			// Task routes
 			events.GET("/:id/tasks", h.GetEventTasks)
 			events.POST("/:id/tasks", h.CreateTask)
 			events.PUT("/:id/tasks/:taskId", h.UpdateTask)
 			events.DELETE("/:id/tasks/:taskId", h.DeleteTask)
-			
+
 			// Participant routes
 			events.GET("/:id/participants", h.GetEventParticipants)
 			events.POST("/:id/participants", h.AddParticipant)
