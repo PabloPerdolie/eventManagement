@@ -8,17 +8,19 @@ import (
 )
 
 type Config struct {
-	Port                 string
-	DatabaseURL          string
-	RedisURL             string
-	JWTSecretKey         string
-	JWTAccessExpiration  time.Duration
-	JWTRefreshExpiration time.Duration
-	AllowedOrigin        string
-	CoreServiceURL       string
+	Port                   string
+	DatabaseURL            string
+	RedisURL               string
+	JWTSecretKey           string
+	JWTAccessExpiration    time.Duration
+	JWTRefreshExpiration   time.Duration
+	AllowedOrigin          string
+	CoreServiceURL         string
 	NotificationServiceURL string
 	CommunicationServiceURL string
 	PasswordResetExpiration time.Duration
+	RabbitMQURL            string
+	CommentQueueName       string
 }
 
 func New() (*Config, error) {
@@ -89,6 +91,16 @@ func New() (*Config, error) {
 		communicationServiceURL = "http://localhost:8083"
 	}
 
+	rabbitMQURL := os.Getenv("RABBITMQ_URL")
+	if rabbitMQURL == "" {
+		rabbitMQURL = "amqp://guest:guest@localhost:5672/"
+	}
+
+	commentQueueName := os.Getenv("COMMENT_QUEUE_NAME")
+	if commentQueueName == "" {
+		commentQueueName = "comments"
+	}
+
 	return &Config{
 		Port:                    port,
 		DatabaseURL:             dbURL,
@@ -101,5 +113,7 @@ func New() (*Config, error) {
 		NotificationServiceURL:  notificationServiceURL,
 		CommunicationServiceURL: communicationServiceURL,
 		PasswordResetExpiration: pwResetExp,
+		RabbitMQURL:             rabbitMQURL,
+		CommentQueueName:        commentQueueName,
 	}, nil
 }

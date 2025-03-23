@@ -57,6 +57,15 @@ func setupProtectedRoutes(api *gin.RouterGroup, h *handler.Handler, authMiddlewa
 		users.PUT("/me", h.UpdateProfile)
 		users.PUT("/me/password", h.ChangePassword)
 		users.DELETE("/me", h.DeleteAccount)
+		
+		// User's comments
+		users.GET("/me/comments", h.GetUserComments)
+	}
+	
+	// Direct comment creation endpoint
+	comments := api.Group("/comments", authMiddleware.Authenticate())
+	{
+		comments.POST("", h.CreateComment)
 	}
 	
 	setupServiceProxies(api, h, authMiddleware)
@@ -83,9 +92,13 @@ func setupServiceProxies(api *gin.RouterGroup, h *handler.Handler, authMiddlewar
 		notificationsProxy.Any("/*path", h.ProxyToNotificationService)
 	}
 	
+	// For all non-POST comment operations, use the proxy
 	commentsProxy := api.Group("/comments", authMiddleware.Authenticate())
 	{
-		commentsProxy.Any("/*path", h.ProxyToCommunicationService)
+		// Skip POST requests as they are handled by the direct endpoint
+		commentsProxy.GET("/*path", h.ProxyToCommunicationService)
+		commentsProxy.PUT("/*path", h.ProxyToCommunicationService)
+		commentsProxy.DELETE("/*path", h.ProxyToCommunicationService)
 	}
 }
 
