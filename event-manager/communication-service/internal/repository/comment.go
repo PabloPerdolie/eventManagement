@@ -3,15 +3,17 @@ package repository
 import (
 	"context"
 	"database/sql"
+
 	"github.com/PabloPerdolie/event-manager/communication-service/internal/model"
+	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 )
 
 type Comment struct {
-	db *sql.DB
+	db *sqlx.DB
 }
 
-func New(db *sql.DB) Comment {
+func New(db *sqlx.DB) Comment {
 	return Comment{
 		db: db,
 	}

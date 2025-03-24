@@ -24,7 +24,7 @@ func NewLocator(cfg *config.Config, logger *zap.SugaredLogger) (*ServiceLocator,
 		return nil, err
 	}
 
-	commentRepo := repository.New(db.DB)
+	commentRepo := repository.New(db)
 
 	healthService := service.New(*cfg)
 	commentService := service.NewComment(commentRepo, logger)
