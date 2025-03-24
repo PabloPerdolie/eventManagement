@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/event-management/core-service/internal/model"
-	"github.com/event-management/core-service/internal/service/task"
+	"github.com/PabloPerdolie/event-manager/core-service/internal/model"
+	"github.com/PabloPerdolie/event-manager/core-service/internal/service/task"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -66,14 +66,14 @@ func (h *assignmentHandler) Create(c *gin.Context) {
 func (h *assignmentHandler) GetByID(c *gin.Context) {
 	taskIDStr := c.Param("id")
 	assignmentIDStr := c.Param("assignment_id")
-	
+
 	_, err := uuid.Parse(taskIDStr)
 	if err != nil {
 		h.logger.Errorw("Invalid task ID", "error", err, "id", taskIDStr)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid task ID"})
 		return
 	}
-	
+
 	assignmentID, err := uuid.Parse(assignmentIDStr)
 	if err != nil {
 		h.logger.Errorw("Invalid assignment ID", "error", err, "id", assignmentIDStr)
@@ -95,14 +95,14 @@ func (h *assignmentHandler) GetByID(c *gin.Context) {
 func (h *assignmentHandler) Update(c *gin.Context) {
 	taskIDStr := c.Param("id")
 	assignmentIDStr := c.Param("assignment_id")
-	
+
 	_, err := uuid.Parse(taskIDStr)
 	if err != nil {
 		h.logger.Errorw("Invalid task ID", "error", err, "id", taskIDStr)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid task ID"})
 		return
 	}
-	
+
 	assignmentID, err := uuid.Parse(assignmentIDStr)
 	if err != nil {
 		h.logger.Errorw("Invalid assignment ID", "error", err, "id", assignmentIDStr)
@@ -130,14 +130,14 @@ func (h *assignmentHandler) Update(c *gin.Context) {
 func (h *assignmentHandler) Delete(c *gin.Context) {
 	taskIDStr := c.Param("id")
 	assignmentIDStr := c.Param("assignment_id")
-	
+
 	_, err := uuid.Parse(taskIDStr)
 	if err != nil {
 		h.logger.Errorw("Invalid task ID", "error", err, "id", taskIDStr)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid task ID"})
 		return
 	}
-	
+
 	assignmentID, err := uuid.Parse(assignmentIDStr)
 	if err != nil {
 		h.logger.Errorw("Invalid assignment ID", "error", err, "id", assignmentIDStr)

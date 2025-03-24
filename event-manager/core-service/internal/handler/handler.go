@@ -1,11 +1,11 @@
 package handler
 
 import (
-	"github.com/event-management/core-service/internal/handler/event"
-	"github.com/event-management/core-service/internal/handler/expense"
-	"github.com/event-management/core-service/internal/handler/task"
-	"github.com/event-management/core-service/internal/handler/user"
-	"github.com/event-management/core-service/internal/service"
+	"github.com/PabloPerdolie/event-manager/core-service/internal/handler/event"
+	"github.com/PabloPerdolie/event-manager/core-service/internal/handler/expense"
+	"github.com/PabloPerdolie/event-manager/core-service/internal/handler/task"
+	"github.com/PabloPerdolie/event-manager/core-service/internal/handler/user"
+	"github.com/PabloPerdolie/event-manager/core-service/internal/service"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
@@ -59,7 +59,7 @@ func (h *Handler) InitRoutes(router *gin.Engine) {
 			eventRoutes.GET("/:id", h.Event.GetByID)
 			eventRoutes.PUT("/:id", h.Event.Update)
 			eventRoutes.DELETE("/:id", h.Event.Delete)
-			
+
 			// Event participants
 			eventRoutes.GET("/:id/participants", h.EventParticipant.ListByEvent)
 			eventRoutes.POST("/:id/participants", h.EventParticipant.Create)
@@ -76,7 +76,7 @@ func (h *Handler) InitRoutes(router *gin.Engine) {
 			taskRoutes.GET("/:id", h.Task.GetByID)
 			taskRoutes.PUT("/:id", h.Task.Update)
 			taskRoutes.DELETE("/:id", h.Task.Delete)
-			
+
 			// Task assignments
 			taskRoutes.GET("/:id/assignments", h.TaskAssignment.ListByTask)
 			taskRoutes.POST("/:id/assignments", h.TaskAssignment.Create)
@@ -93,7 +93,7 @@ func (h *Handler) InitRoutes(router *gin.Engine) {
 			expenseRoutes.GET("/:id", h.Expense.GetByID)
 			expenseRoutes.PUT("/:id", h.Expense.Update)
 			expenseRoutes.DELETE("/:id", h.Expense.Delete)
-			
+
 			// Expense shares
 			expenseRoutes.GET("/:id/shares", h.ExpenseShare.ListByExpense)
 			expenseRoutes.POST("/:id/shares", h.ExpenseShare.Create)

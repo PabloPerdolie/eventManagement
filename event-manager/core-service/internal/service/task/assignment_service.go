@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/event-management/core-service/internal/model"
-	"github.com/event-management/core-service/internal/repository/task"
-	"github.com/event-management/core-service/internal/repository/user"
+	"github.com/PabloPerdolie/event-manager/core-service/internal/model"
+	"github.com/PabloPerdolie/event-manager/core-service/internal/repository/task"
+	"github.com/PabloPerdolie/event-manager/core-service/internal/repository/user"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )

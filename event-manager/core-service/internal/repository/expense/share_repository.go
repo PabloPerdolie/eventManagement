@@ -5,9 +5,8 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"time"
 
-	"github.com/event-management/core-service/internal/model"
+	"github.com/PabloPerdolie/event-manager/core-service/internal/model"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 )

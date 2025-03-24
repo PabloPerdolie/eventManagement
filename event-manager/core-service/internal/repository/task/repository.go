@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/event-management/core-service/internal/model"
+	"github.com/PabloPerdolie/event-manager/core-service/internal/model"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 )
@@ -37,7 +37,7 @@ func (r *repository) Create(ctx context.Context, task model.Task) (uuid.UUID, er
 	task.ID = uuid.New()
 	task.CreatedAt = time.Now()
 	task.UpdatedAt = time.Now()
-	
+
 	// Set default status if not provided
 	if task.Status == "" {
 		task.Status = model.TaskStatusPending

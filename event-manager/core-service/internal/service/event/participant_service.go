@@ -5,9 +5,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/event-management/core-service/internal/model"
-	"github.com/event-management/core-service/internal/repository/event"
-	"github.com/event-management/core-service/internal/repository/user"
+	"github.com/PabloPerdolie/event-manager/core-service/internal/model"
+	"github.com/PabloPerdolie/event-manager/core-service/internal/repository/event"
+	"github.com/PabloPerdolie/event-manager/core-service/internal/repository/user"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
@@ -25,17 +25,17 @@ type ParticipantService interface {
 }
 
 type participantService struct {
-	repo      event.ParticipantRepository
-	userRepo  user.Repository
-	logger    *zap.SugaredLogger
+	repo     event.ParticipantRepository
+	userRepo user.Repository
+	logger   *zap.SugaredLogger
 }
 
 // NewParticipantService creates a new event participant service
 func NewParticipantService(repo event.ParticipantRepository, userRepo user.Repository, logger *zap.SugaredLogger) ParticipantService {
 	return &participantService{
-		repo:      repo,
-		userRepo:  userRepo,
-		logger:    logger,
+		repo:     repo,
+		userRepo: userRepo,
+		logger:   logger,
 	}
 }
 

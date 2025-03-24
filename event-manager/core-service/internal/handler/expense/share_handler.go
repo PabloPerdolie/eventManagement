@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/event-management/core-service/internal/model"
-	"github.com/event-management/core-service/internal/service/expense"
+	"github.com/PabloPerdolie/event-manager/core-service/internal/model"
+	"github.com/PabloPerdolie/event-manager/core-service/internal/service/expense"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -46,7 +46,7 @@ func (h *shareHandler) Create(c *gin.Context) {
 	// For creating shares, we'll use a different request structure
 	// that allows creating multiple shares at once
 	var req struct {
-		ParticipantIDs []uuid.UUID             `json:"participant_ids"`
+		ParticipantIDs []uuid.UUID              `json:"participant_ids"`
 		SplitMethod    model.ExpenseSplitMethod `json:"split_method"`
 	}
 
@@ -75,14 +75,14 @@ func (h *shareHandler) Create(c *gin.Context) {
 func (h *shareHandler) GetByID(c *gin.Context) {
 	expenseIDStr := c.Param("id")
 	shareIDStr := c.Param("share_id")
-	
+
 	_, err := uuid.Parse(expenseIDStr)
 	if err != nil {
 		h.logger.Errorw("Invalid expense ID", "error", err, "id", expenseIDStr)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid expense ID"})
 		return
 	}
-	
+
 	shareID, err := uuid.Parse(shareIDStr)
 	if err != nil {
 		h.logger.Errorw("Invalid share ID", "error", err, "id", shareIDStr)
@@ -104,14 +104,14 @@ func (h *shareHandler) GetByID(c *gin.Context) {
 func (h *shareHandler) Update(c *gin.Context) {
 	expenseIDStr := c.Param("id")
 	shareIDStr := c.Param("share_id")
-	
+
 	_, err := uuid.Parse(expenseIDStr)
 	if err != nil {
 		h.logger.Errorw("Invalid expense ID", "error", err, "id", expenseIDStr)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid expense ID"})
 		return
 	}
-	
+
 	shareID, err := uuid.Parse(shareIDStr)
 	if err != nil {
 		h.logger.Errorw("Invalid share ID", "error", err, "id", shareIDStr)

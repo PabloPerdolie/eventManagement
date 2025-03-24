@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/event-management/core-service/internal/model"
-	"github.com/event-management/core-service/internal/service/event"
+	"github.com/PabloPerdolie/event-manager/core-service/internal/model"
+	"github.com/PabloPerdolie/event-manager/core-service/internal/service/event"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -127,7 +127,7 @@ func (h *handler) Delete(c *gin.Context) {
 func (h *handler) List(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	size, _ := strconv.Atoi(c.DefaultQuery("size", "10"))
-	
+
 	// Get optional user_id filter
 	userIDStr := c.Query("user_id")
 	var userID *uuid.UUID

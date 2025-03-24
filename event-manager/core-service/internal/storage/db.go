@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/event-management/core-service/internal/config"
+	"github.com/PabloPerdolie/event-manager/core-service/internal/config"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	"go.uber.org/zap"

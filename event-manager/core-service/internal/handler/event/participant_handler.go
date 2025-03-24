@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/event-management/core-service/internal/model"
-	"github.com/event-management/core-service/internal/service/event"
+	"github.com/PabloPerdolie/event-manager/core-service/internal/model"
+	"github.com/PabloPerdolie/event-manager/core-service/internal/service/event"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -66,14 +66,14 @@ func (h *participantHandler) Create(c *gin.Context) {
 func (h *participantHandler) GetByID(c *gin.Context) {
 	eventIDStr := c.Param("id")
 	userIDStr := c.Param("user_id")
-	
+
 	eventID, err := uuid.Parse(eventIDStr)
 	if err != nil {
 		h.logger.Errorw("Invalid event ID", "error", err, "id", eventIDStr)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid event ID"})
 		return
 	}
-	
+
 	userID, err := uuid.Parse(userIDStr)
 	if err != nil {
 		h.logger.Errorw("Invalid user ID", "error", err, "id", userIDStr)
@@ -95,14 +95,14 @@ func (h *participantHandler) GetByID(c *gin.Context) {
 func (h *participantHandler) Update(c *gin.Context) {
 	eventIDStr := c.Param("id")
 	userIDStr := c.Param("user_id")
-	
+
 	eventID, err := uuid.Parse(eventIDStr)
 	if err != nil {
 		h.logger.Errorw("Invalid event ID", "error", err, "id", eventIDStr)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid event ID"})
 		return
 	}
-	
+
 	userID, err := uuid.Parse(userIDStr)
 	if err != nil {
 		h.logger.Errorw("Invalid user ID", "error", err, "id", userIDStr)
@@ -134,14 +134,14 @@ func (h *participantHandler) Update(c *gin.Context) {
 func (h *participantHandler) Delete(c *gin.Context) {
 	eventIDStr := c.Param("id")
 	userIDStr := c.Param("user_id")
-	
+
 	eventID, err := uuid.Parse(eventIDStr)
 	if err != nil {
 		h.logger.Errorw("Invalid event ID", "error", err, "id", eventIDStr)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid event ID"})
 		return
 	}
-	
+
 	userID, err := uuid.Parse(userIDStr)
 	if err != nil {
 		h.logger.Errorw("Invalid user ID", "error", err, "id", userIDStr)

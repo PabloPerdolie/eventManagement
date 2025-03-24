@@ -1,10 +1,10 @@
 package repository
 
 import (
-	"github.com/event-management/core-service/internal/repository/event"
-	"github.com/event-management/core-service/internal/repository/expense"
-	"github.com/event-management/core-service/internal/repository/task"
-	"github.com/event-management/core-service/internal/repository/user"
+	"github.com/PabloPerdolie/event-manager/core-service/internal/repository/event"
+	"github.com/PabloPerdolie/event-manager/core-service/internal/repository/expense"
+	"github.com/PabloPerdolie/event-manager/core-service/internal/repository/task"
+	"github.com/PabloPerdolie/event-manager/core-service/internal/repository/user"
 	"github.com/jmoiron/sqlx"
 )
 

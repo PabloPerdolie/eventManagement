@@ -2,14 +2,15 @@ package main
 
 import (
 	"context"
-	"github.com/yourusername/event-management/core-service/internal/assembly"
-	"github.com/yourusername/event-management/core-service/internal/config"
-	"github.com/yourusername/event-management/core-service/internal/routes"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/PabloPerdolie/event-manager/core-service/internal/assembly"
+	"github.com/PabloPerdolie/event-manager/core-service/internal/config"
+	"github.com/PabloPerdolie/event-manager/core-service/internal/routes"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"

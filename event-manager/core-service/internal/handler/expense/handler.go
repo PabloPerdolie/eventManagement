@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/event-management/core-service/internal/model"
-	"github.com/event-management/core-service/internal/service/expense"
+	"github.com/PabloPerdolie/event-manager/core-service/internal/model"
+	"github.com/PabloPerdolie/event-manager/core-service/internal/service/expense"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -127,11 +127,11 @@ func (h *handler) Delete(c *gin.Context) {
 func (h *handler) List(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	size, _ := strconv.Atoi(c.DefaultQuery("size", "10"))
-	
+
 	// Get optional filters
 	eventIDStr := c.Query("event_id")
 	userIDStr := c.Query("user_id")
-	
+
 	var eventID *uuid.UUID
 	if eventIDStr != "" {
 		parsed, err := uuid.Parse(eventIDStr)
@@ -141,7 +141,7 @@ func (h *handler) List(c *gin.Context) {
 			h.logger.Warnw("Invalid event ID filter", "error", err, "event_id", eventIDStr)
 		}
 	}
-	
+
 	var userID *uuid.UUID
 	if userIDStr != "" {
 		parsed, err := uuid.Parse(userIDStr)

@@ -3,7 +3,7 @@ package handler
 import (
 	"net/http"
 
-	"github.com/event-management/core-service/internal/service"
+	"github.com/PabloPerdolie/event-manager/core-service/internal/service"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )

@@ -1,11 +1,11 @@
 package service
 
 import (
-	"github.com/event-management/core-service/internal/repository"
-	"github.com/event-management/core-service/internal/service/event"
-	"github.com/event-management/core-service/internal/service/expense"
-	"github.com/event-management/core-service/internal/service/task"
-	"github.com/event-management/core-service/internal/service/user"
+	"github.com/PabloPerdolie/event-manager/core-service/internal/repository"
+	"github.com/PabloPerdolie/event-manager/core-service/internal/service/event"
+	"github.com/PabloPerdolie/event-manager/core-service/internal/service/expense"
+	"github.com/PabloPerdolie/event-manager/core-service/internal/service/task"
+	"github.com/PabloPerdolie/event-manager/core-service/internal/service/user"
 	"go.uber.org/zap"
 )
 

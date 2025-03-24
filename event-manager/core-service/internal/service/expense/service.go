@@ -7,8 +7,8 @@ import (
 	"math"
 	"time"
 
-	"github.com/event-management/core-service/internal/model"
-	"github.com/event-management/core-service/internal/repository/expense"
+	"github.com/PabloPerdolie/event-manager/core-service/internal/model"
+	"github.com/PabloPerdolie/event-manager/core-service/internal/repository/expense"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
@@ -26,17 +26,17 @@ type Service interface {
 }
 
 type service struct {
-	expenseRepo     expense.Repository
+	expenseRepo      expense.Repository
 	expenseShareRepo expense.ShareRepository
-	logger          *zap.SugaredLogger
+	logger           *zap.SugaredLogger
 }
 
 // NewService creates a new expense service
 func NewService(expenseRepo expense.Repository, expenseShareRepo expense.ShareRepository, logger *zap.SugaredLogger) Service {
 	return &service{
-		expenseRepo:     expenseRepo,
+		expenseRepo:      expenseRepo,
 		expenseShareRepo: expenseShareRepo,
-		logger:          logger,
+		logger:           logger,
 	}
 }
 
@@ -180,17 +180,17 @@ func (s *service) GetByID(ctx context.Context, id uuid.UUID) (model.ExpenseRespo
 	}
 
 	return model.ExpenseResponse{
-		ID:            expense.ID,
-		EventID:       expense.EventID,
-		Description:   expense.Description,
-		Amount:        expense.Amount,
-		Currency:      expense.Currency,
-		ExpenseDate:   expense.ExpenseDate,
-		CreatedBy:     expense.CreatedBy,
-		SplitMethod:   expense.SplitMethod,
-		CreatedAt:     expense.CreatedAt,
+		ID:             expense.ID,
+		EventID:        expense.EventID,
+		Description:    expense.Description,
+		Amount:         expense.Amount,
+		Currency:       expense.Currency,
+		ExpenseDate:    expense.ExpenseDate,
+		CreatedBy:      expense.CreatedBy,
+		SplitMethod:    expense.SplitMethod,
+		CreatedAt:      expense.CreatedAt,
 		ParticipantIDs: participantIDs,
-		Shares:        shareResponses,
+		Shares:         shareResponses,
 	}, nil
 }
 
@@ -325,17 +325,17 @@ func (s *service) ListByEvent(ctx context.Context, eventID uuid.UUID, page, size
 		}
 
 		expenseResponses[i] = model.ExpenseResponse{
-			ID:            expense.ID,
-			EventID:       expense.EventID,
-			Description:   expense.Description,
-			Amount:        expense.Amount,
-			Currency:      expense.Currency,
-			ExpenseDate:   expense.ExpenseDate,
-			CreatedBy:     expense.CreatedBy,
-			SplitMethod:   expense.SplitMethod,
-			CreatedAt:     expense.CreatedAt,
+			ID:             expense.ID,
+			EventID:        expense.EventID,
+			Description:    expense.Description,
+			Amount:         expense.Amount,
+			Currency:       expense.Currency,
+			ExpenseDate:    expense.ExpenseDate,
+			CreatedBy:      expense.CreatedBy,
+			SplitMethod:    expense.SplitMethod,
+			CreatedAt:      expense.CreatedAt,
 			ParticipantIDs: participantIDs,
-			Shares:        shareResponses,
+			Shares:         shareResponses,
 		}
 	}
 
@@ -400,17 +400,17 @@ func (s *service) ListByUser(ctx context.Context, userID uuid.UUID, page, size i
 		}
 
 		expenseResponses[i] = model.ExpenseResponse{
-			ID:            expense.ID,
-			EventID:       expense.EventID,
-			Description:   expense.Description,
-			Amount:        expense.Amount,
-			Currency:      expense.Currency,
-			ExpenseDate:   expense.ExpenseDate,
-			CreatedBy:     expense.CreatedBy,
-			SplitMethod:   expense.SplitMethod,
-			CreatedAt:     expense.CreatedAt,
+			ID:             expense.ID,
+			EventID:        expense.EventID,
+			Description:    expense.Description,
+			Amount:         expense.Amount,
+			Currency:       expense.Currency,
+			ExpenseDate:    expense.ExpenseDate,
+			CreatedBy:      expense.CreatedBy,
+			SplitMethod:    expense.SplitMethod,
+			CreatedAt:      expense.CreatedAt,
 			ParticipantIDs: participantIDs,
-			Shares:        shareResponses,
+			Shares:         shareResponses,
 		}
 	}
 
