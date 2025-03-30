@@ -1,9 +1,5 @@
 package domain
 
-import (
-	"github.com/google/uuid"
-)
-
 type UserUpdateRequest struct {
 	FirstName *string `json:"first_name"`
 	LastName  *string `json:"last_name"`
@@ -24,8 +20,8 @@ type ResetPasswordRequest struct {
 	NewPassword string `json:"new_password" binding:"required,min=8"`
 }
 
-type UserIDRequest struct {
-	UserID uuid.UUID `uri:"id" binding:"required"`
+type UserIdRequest struct {
+	UserId int `uri:"id" binding:"required"`
 }
 
 type UserListResponse struct {

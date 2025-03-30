@@ -23,9 +23,9 @@ import (
 // @Failure 500 {object} domain.ErrorResponse
 // @Router /api/v1/comments [post]
 func (h *Handler) CreateComment(c *gin.Context) {
-	userID, err := getUserIDFromContext(c)
+	userId, err := getUserIdFromContext(c)
 	if err != nil {
-		h.logger.Errorw("Failed to get user ID from context", "error", err)
+		h.logger.Errorw("Failed to get user Id from context", "error", err)
 		c.JSON(http.StatusUnauthorized, domain.ErrorResponse{
 			Error:   "Unauthorized",
 			Message: "You must be logged in to create a comment",
@@ -43,14 +43,14 @@ func (h *Handler) CreateComment(c *gin.Context) {
 		return
 	}
 
-	// Override sender ID with the authenticated user's ID
-	request.SenderId = int(userID)
+	// Override sender Id with the authenticated user's Id
+	request.SenderId = int(userId)
 
-	// Validate event ID
+	// Validate event Id
 	if request.EventId <= 0 {
 		c.JSON(http.StatusBadRequest, domain.ErrorResponse{
 			Error:   "Bad Request",
-			Message: "Invalid event ID",
+			Message: "Invalid event Id",
 		})
 		return
 	}
@@ -67,7 +67,7 @@ func (h *Handler) CreateComment(c *gin.Context) {
 	// Create the comment asynchronously
 	err = h.service.Comment.CreateComment(c.Request.Context(), request)
 	if err != nil {
-		h.logger.Errorw("Failed to create comment", "error", err, "event_id", request.EventId, "user_id", userID)
+		h.logger.Errorw("Failed to create comment", "error", err, "event_id", request.EventId, "user_id", userId)
 		c.JSON(http.StatusInternalServerError, domain.ErrorResponse{
 			Error:   "Internal Server Error",
 			Message: "Failed to create comment, please try again later",
@@ -92,9 +92,9 @@ func (h *Handler) CreateComment(c *gin.Context) {
 // @Failure 500 {object} domain.ErrorResponse
 // @Router /api/v1/users/me/comments [get]
 func (h *Handler) GetUserComments(c *gin.Context) {
-	userID, err := getUserIDFromContext(c)
+	userId, err := getUserIdFromContext(c)
 	if err != nil {
-		h.logger.Errorw("Failed to get user ID from context", "error", err)
+		h.logger.Errorw("Failed to get user Id from context", "error", err)
 		c.JSON(http.StatusUnauthorized, domain.ErrorResponse{
 			Error:   "Unauthorized",
 			Message: "You must be logged in to view your comments",
@@ -103,8 +103,8 @@ func (h *Handler) GetUserComments(c *gin.Context) {
 	}
 
 	// Forward to communication service via proxy
-	c.Request.URL.Path = "/api/v1/comments/user/" + strconv.Itoa(int(userID))
-	
+	c.Request.URL.Path = "/api/v1/comments/user/" + strconv.Itoa(int(userId))
+
 	proxy, err := h.service.Proxy.NewCommunicationServiceProxy()
 	if err != nil {
 		h.logger.Errorw("Failed to create communication service proxy", "error", err)
@@ -115,8 +115,8 @@ func (h *Handler) GetUserComments(c *gin.Context) {
 		return
 	}
 
-	// Add user ID to request context
-	c.Request.Header.Set("X-User-ID", strconv.Itoa(int(userID)))
-	
+	// Add user Id to request context
+	c.Request.Header.Set("X-User-Id", strconv.Itoa(int(userId)))
+
 	proxy.ServeHTTP(c.Writer, c.Request)
 }

@@ -8,7 +8,6 @@ import (
 	"github.com/event-management/api-gateway/internal/service"
 	redis1 "github.com/event-management/api-gateway/internal/storage/redis"
 	"github.com/go-redis/redis/v8"
-	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )
 
@@ -22,11 +21,8 @@ type ServiceLocator struct {
 }
 
 func NewServiceLocator(cfg *config.Config, logger *zap.SugaredLogger) (*ServiceLocator, error) {
-	repo, err := repository.New(cfg)
-	if err != nil {
-		return nil, errors.WithMessage(err, "new repository")
-	}
 
+	repo := repository.NewPostgresRepository()
 	client, err := redis1.NewClient(cfg.RedisURL)
 	if err != nil {
 		return nil, err
@@ -37,20 +33,16 @@ func NewServiceLocator(cfg *config.Config, logger *zap.SugaredLogger) (*ServiceL
 	middleware := middleware.NewAuthMiddleware(cfg.JWTSecretKey, client)
 
 	return &ServiceLocator{
-		Config: cfg,
+		Config:      cfg,
 		RedisClient: client,
-		Handler: handler,
-		Middleware: middleware,
-		Logger: logger,
+		Handler:     handler,
+		Middleware:  middleware,
+		Logger:      logger,
 	}, nil
 }
 
 func (l *ServiceLocator) Close() {
-	//if l.Repository != nil {
-	//	l.Repository.Close()
-	//}
 	if l.RedisClient != nil {
 		l.RedisClient.Close()
 	}
 }
-

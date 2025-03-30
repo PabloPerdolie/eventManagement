@@ -21,13 +21,14 @@ func NewPostgresRepository(db *sqlx.DB) *PostgresRepository {
 	}
 }
 
-func (r *PostgresRepository) CreateUser(ctx context.Context, user model.User) error {
+func (r *PostgresRepository) CreateUser(ctx context.Context, user model.User) (int, error) {
 	query := `
 		INSERT INTO users (username, password_hash, email, is_active, is_deleted, role, created_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		RETURNING user_id
 	`
 
+	var id int
 	err := r.db.QueryRowContext(ctx, query,
 		user.Username,
 		user.PasswordHash,
@@ -36,15 +37,15 @@ func (r *PostgresRepository) CreateUser(ctx context.Context, user model.User) er
 		user.IsDeleted,
 		user.Role,
 		time.Now(),
-	).Scan(&user.UserId)
+	).Scan(&id)
 	if err != nil {
-		return errors.WithMessage(err, "create user")
+		return 0, errors.WithMessage(err, "create user")
 	}
 
-	return nil
+	return id, nil
 }
 
-func (r *PostgresRepository) GetUserByID(ctx context.Context, id int) (*model.User, error) {
+func (r *PostgresRepository) GetUserById(ctx context.Context, id int) (*model.User, error) {
 	query := `
 		SELECT user_id, username, password_hash, email, is_active, is_deleted, role, created_at
 		FROM users
@@ -94,6 +95,34 @@ func (r *PostgresRepository) GetUserByEmail(ctx context.Context, email string) (
 	}
 	if err != nil {
 		return nil, errors.WithMessage(err, "get user by email")
+	}
+
+	return &user, nil
+}
+
+func (r *PostgresRepository) GetUserByUsername(ctx context.Context, username string) (*model.User, error) {
+	query := `
+		SELECT user_id, username, password_hash, email, is_active, is_deleted, role, created_at
+		FROM users
+		WHERE username = $1 AND is_deleted = FALSE
+	`
+
+	var user model.User
+	err := r.db.QueryRowContext(ctx, query, username).Scan(
+		&user.UserId,
+		&user.Username,
+		&user.PasswordHash,
+		&user.Email,
+		&user.IsActive,
+		&user.IsDeleted,
+		&user.Role,
+		&user.CreatedAt,
+	)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, domain.ErrUserNotFound
+	}
+	if err != nil {
+		return nil, errors.WithMessage(err, "get user by username")
 	}
 
 	return &user, nil

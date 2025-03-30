@@ -30,9 +30,9 @@ func (h *Handler) ProxyToEventService(c *gin.Context) {
 		return
 	}
 
-	// Add user ID to request context if available
-	if userID, err := getUserIDFromContext(c); err == nil {
-		c.Request.Header.Set("X-User-ID", userID.String())
+	// Add user Id to request context if available
+	if userId, err := getUserIdFromContext(c); err == nil {
+		c.Request.Header.Set("X-User-Id", userId.String())
 	}
 
 	proxy.ServeHTTP(c.Writer, c.Request)
@@ -61,9 +61,9 @@ func (h *Handler) ProxyToNotificationService(c *gin.Context) {
 		return
 	}
 
-	// Add user ID to request context if available
-	if userID, err := getUserIDFromContext(c); err == nil {
-		c.Request.Header.Set("X-User-ID", userID.String())
+	// Add user Id to request context if available
+	if userId, err := getUserIdFromContext(c); err == nil {
+		c.Request.Header.Set("X-User-Id", userId.String())
 	}
 
 	proxy.ServeHTTP(c.Writer, c.Request)
@@ -92,9 +92,9 @@ func (h *Handler) ProxyToCommunicationService(c *gin.Context) {
 		return
 	}
 
-	// Add user ID to request context if available
-	if userID, err := getUserIDFromContext(c); err == nil {
-		c.Request.Header.Set("X-User-ID", userID.String())
+	// Add user Id to request context if available
+	if userId, err := getUserIdFromContext(c); err == nil {
+		c.Request.Header.Set("X-User-Id", userId.String())
 	}
 
 	proxy.ServeHTTP(c.Writer, c.Request)

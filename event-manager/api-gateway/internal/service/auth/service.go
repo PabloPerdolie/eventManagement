@@ -2,6 +2,8 @@ package auth
 
 import (
 	"context"
+	"github.com/event-management/api-gateway/internal/model"
+	"github.com/pkg/errors"
 	"golang.org/x/crypto/bcrypt"
 	"time"
 
@@ -11,32 +13,34 @@ import (
 )
 
 type Repository interface {
-	CreateUser(ctx context.Context, user domain.User) error
-	GetUserByID(ctx context.Context, id uuid.UUID) (domain.User, error)
-	GetUserByEmail(ctx context.Context, email string) (domain.User, error)
-	UpdateUser(ctx context.Context, user domain.User) error
-	CheckEmailExists(ctx context.Context, email string) (bool, error)
+	CreateUser(ctx context.Context, user model.User) (int, error)
+	GetUserById(ctx context.Context, id int) (*model.User, error)
+	GetUserByEmail(ctx context.Context, email string) (*model.User, error)
+	GetUserByUsername(ctx context.Context, username string) (*model.User, error)
+	UpdateUser(ctx context.Context, user model.User) error
+	DeleteUser(ctx context.Context, id int) error
+	ListUsers(ctx context.Context, limit, offset int) ([]model.User, int, error)
 }
 
-type TokenStore interface {
+type TokenRepo interface {
 	BlacklistToken(ctx context.Context, token string, expiry time.Duration) error
 	IsTokenBlacklisted(ctx context.Context, token string) (bool, error)
-	StoreResetToken(ctx context.Context, userID uuid.UUID, token string, expiry time.Duration) error
-	GetUserIDByResetToken(ctx context.Context, token string) (uuid.UUID, error)
+	StoreResetToken(ctx context.Context, userId int, token string, expiry time.Duration) error
+	GetUserIdByResetToken(ctx context.Context, token string) (int, error)
 	DeleteResetToken(ctx context.Context, token string) error
 	DeleteRefreshToken(ctx context.Context, token string) error
 }
 
 type Service struct {
 	repo                Repository
-	tokenStore          TokenStore
+	tokenStore          TokenRepo
 	jwtSecret           string
 	accessTokenExpiry   time.Duration
 	refreshTokenExpiry  time.Duration
 	passwordResetExpiry time.Duration
 }
 
-func New(repo Repository, tokenStore TokenStore, jwtSecret string, accessExp, refreshExp, resetExp time.Duration) Service {
+func New(repo Repository, tokenStore TokenRepo, jwtSecret string, accessExp, refreshExp, resetExp time.Duration) Service {
 	return Service{
 		repo:                repo,
 		tokenStore:          tokenStore,
@@ -48,41 +52,40 @@ func New(repo Repository, tokenStore TokenStore, jwtSecret string, accessExp, re
 }
 
 func (s Service) Register(ctx context.Context, req domain.UserRegisterRequest) (*domain.AuthResponse, error) {
-	exists, err := s.repo.CheckEmailExists(ctx, req.Email)
+	exists, err := s.repo.GetUserByEmail(ctx, req.Email)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithMessage(err, "get user by email")
 	}
-	if exists {
+	if exists != nil {
 		return nil, domain.ErrEmailAlreadyExists
-	}
-
-	user := domain.User{
-		Email:     req.Email,
-		Role:      domain.RoleUser,
-		IsActive:  true,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
 	}
 
 	passwordHash, err := hashPassword(req.Password)
 	if err != nil {
-		return nil, err
-	}
-	user.PasswordHash = passwordHash
-
-	if err := s.repo.CreateUser(ctx, user); err != nil {
-		return nil, err
+		return nil, errors.WithMessage(err, "hash password")
 	}
 
-	tokenPair, err := s.generateTokenPair(user.ID, string(user.Role))
+	user := model.User{
+		Email:        req.Email,
+		PasswordHash: passwordHash,
+		Username:     req.Username,
+	}
+
+	id, err := s.repo.CreateUser(ctx, user)
+	if err != nil {
+		return nil, err
+	}
+
+	tokenPair, err := s.generateTokenPair(id, string(user.Role))
 	if err != nil {
 		return nil, err
 	}
 
 	return &domain.AuthResponse{
 		User: domain.UserResponse{
-			ID:        user.ID,
+			UserId:    id,
 			Email:     user.Email,
+			Username:  user.Username,
 			Role:      user.Role,
 			CreatedAt: user.CreatedAt,
 		},
@@ -92,9 +95,8 @@ func (s Service) Register(ctx context.Context, req domain.UserRegisterRequest) (
 	}, nil
 }
 
-// Login выполняет вход пользователя
 func (s Service) Login(ctx context.Context, req domain.UserLoginRequest) (*domain.AuthResponse, error) {
-	user, err := s.repo.GetUserByEmail(ctx, req.Email)
+	user, err := s.repo.GetUserByUsername(ctx, req.Username)
 	if err != nil {
 		return nil, domain.ErrInvalidCredentials
 	}
@@ -107,20 +109,18 @@ func (s Service) Login(ctx context.Context, req domain.UserLoginRequest) (*domai
 		return nil, domain.ErrUserNotActive
 	}
 
-	tokenPair, err := s.generateTokenPair(user.ID, string(user.Role))
+	tokenPair, err := s.generateTokenPair(user.UserId, string(user.Role))
 	if err != nil {
 		return nil, err
 	}
 
 	return &domain.AuthResponse{
 		User: domain.UserResponse{
-			ID:              user.ID,
-			Email:           user.Email,
-			FirstName:       user.FirstName,
-			LastName:        user.LastName,
-			Role:            user.Role,
-			IsEmailVerified: user.IsEmailVerified,
-			CreatedAt:       user.CreatedAt,
+			UserId:    user.UserId,
+			Username:  user.Username,
+			Email:     user.Email,
+			Role:      user.Role,
+			CreatedAt: user.CreatedAt,
 		},
 		AccessToken:  tokenPair.AccessToken,
 		RefreshToken: tokenPair.RefreshToken,
@@ -154,7 +154,7 @@ func (s Service) RefreshToken(ctx context.Context, refreshToken string) (*domain
 		return nil, err
 	}
 
-	user, err := s.repo.GetUserByID(ctx, claims.UserID)
+	user, err := s.repo.GetUserById(ctx, claims.UserId)
 	if err != nil {
 		return nil, err
 	}
@@ -163,7 +163,7 @@ func (s Service) RefreshToken(ctx context.Context, refreshToken string) (*domain
 		return nil, domain.ErrUserNotActive
 	}
 
-	return s.generateTokenPair(user.ID, string(user.Role))
+	return s.generateTokenPair(user.UserId, string(user.Role))
 }
 
 // Logout выполняет выход пользователя
@@ -196,21 +196,19 @@ func (s Service) ValidateToken(ctx context.Context, tokenString string) (*domain
 	return claims, nil
 }
 
-// GetUserInfo возвращает информацию о пользователе по его ID
-func (s Service) GetUserInfo(ctx context.Context, userID uuid.UUID) (*domain.UserResponse, error) {
-	user, err := s.repo.GetUserByID(ctx, userID)
+// GetUserInfo возвращает информацию о пользователе по его Id
+func (s Service) GetUserInfo(ctx context.Context, userId int) (*domain.UserResponse, error) {
+	user, err := s.repo.GetUserById(ctx, userId)
 	if err != nil {
 		return nil, err
 	}
 
 	return &domain.UserResponse{
-		ID:              user.ID,
-		Email:           user.Email,
-		FirstName:       user.FirstName,
-		LastName:        user.LastName,
-		Role:            user.Role,
-		IsEmailVerified: user.IsEmailVerified,
-		CreatedAt:       user.CreatedAt,
+		UserId:    user.UserId,
+		Username:  user.Username,
+		Email:     user.Email,
+		Role:      user.Role,
+		CreatedAt: user.CreatedAt,
 	}, nil
 }
 
@@ -227,7 +225,7 @@ func (s Service) CreatePasswordResetToken(ctx context.Context, email string) (st
 
 	resetToken := uuid.New().String()
 
-	err = s.tokenStore.StoreResetToken(ctx, user.ID, resetToken, s.passwordResetExpiry)
+	err = s.tokenStore.StoreResetToken(ctx, user.UserId, resetToken, s.passwordResetExpiry)
 	if err != nil {
 		return "", err
 	}
@@ -236,16 +234,16 @@ func (s Service) CreatePasswordResetToken(ctx context.Context, email string) (st
 }
 
 // generateTokenPair генерирует пару токенов (access и refresh)
-func (s Service) generateTokenPair(userID uuid.UUID, role string) (*domain.TokenPair, error) {
+func (s Service) generateTokenPair(userId int, role string) (*domain.TokenPair, error) {
 	accessClaims := domain.JWTClaims{
-		UserID: userID,
+		UserId: userId,
 		Role:   role,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(s.accessTokenExpiry)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			NotBefore: jwt.NewNumericDate(time.Now()),
 			Issuer:    "api-gateway",
-			Subject:   userID.String(),
+			Subject:   string(rune(userId)),
 			ID:        uuid.New().String(),
 		},
 	}
@@ -257,14 +255,14 @@ func (s Service) generateTokenPair(userID uuid.UUID, role string) (*domain.Token
 	}
 
 	refreshClaims := domain.JWTClaims{
-		UserID: userID,
+		UserId: userId,
 		Role:   role,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(s.refreshTokenExpiry)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			NotBefore: jwt.NewNumericDate(time.Now()),
 			Issuer:    "api-gateway",
-			Subject:   userID.String(),
+			Subject:   string(rune(userId)),
 			ID:        uuid.New().String(),
 		},
 	}

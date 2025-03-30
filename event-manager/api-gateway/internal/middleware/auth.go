@@ -63,7 +63,7 @@ func (m *AuthMiddleware) Authenticate() gin.HandlerFunc {
 		}
 
 		if claims, ok := token.Claims.(*domain.JWTClaims); ok && token.Valid {
-			c.Set("user_id", claims.UserID)
+			c.Set("user_id", claims.UserId)
 			c.Set("user_role", claims.Role)
 			c.Next()
 		} else {

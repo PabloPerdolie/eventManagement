@@ -3,9 +3,9 @@ package handler
 import (
 	"net/http"
 
+	"github.com/event-management/api-gateway/internal/domain"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/event-management/api-gateway/internal/domain"
 )
 
 // GetCurrentUser returns the currently authenticated user
@@ -20,7 +20,7 @@ import (
 // @Failure 500 {object} domain.ErrorResponse
 // @Router /users/me [get]
 func (h *Handler) GetCurrentUser(c *gin.Context) {
-	userID, err := getUserIDFromContext(c)
+	userId, err := getUserIdFromContext(c)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, domain.ErrorResponse{
 			Error:   "Unauthorized",
@@ -29,7 +29,7 @@ func (h *Handler) GetCurrentUser(c *gin.Context) {
 		return
 	}
 
-	user, err := h.service.User.GetUserByID(c.Request.Context(), userID)
+	user, err := h.service.User.GetUserById(c.Request.Context(), userId)
 	if err != nil {
 		h.handleError(c, err)
 		return
@@ -52,7 +52,7 @@ func (h *Handler) GetCurrentUser(c *gin.Context) {
 // @Failure 500 {object} domain.ErrorResponse
 // @Router /users/me [put]
 func (h *Handler) UpdateProfile(c *gin.Context) {
-	userID, err := getUserIDFromContext(c)
+	userId, err := getUserIdFromContext(c)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, domain.ErrorResponse{
 			Error:   "Unauthorized",
@@ -70,7 +70,7 @@ func (h *Handler) UpdateProfile(c *gin.Context) {
 		return
 	}
 
-	user, err := h.service.User.UpdateUser(c.Request.Context(), userID, req)
+	user, err := h.service.User.UpdateUser(c.Request.Context(), userId, req)
 	if err != nil {
 		h.handleError(c, err)
 		return
@@ -93,7 +93,7 @@ func (h *Handler) UpdateProfile(c *gin.Context) {
 // @Failure 500 {object} domain.ErrorResponse
 // @Router /users/me/password [put]
 func (h *Handler) ChangePassword(c *gin.Context) {
-	userID, err := getUserIDFromContext(c)
+	userId, err := getUserIdFromContext(c)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, domain.ErrorResponse{
 			Error:   "Unauthorized",
@@ -111,7 +111,7 @@ func (h *Handler) ChangePassword(c *gin.Context) {
 		return
 	}
 
-	err = h.service.Password.ChangePassword(c.Request.Context(), userID, req)
+	err = h.service.Password.ChangePassword(c.Request.Context(), userId, req)
 	if err != nil {
 		h.handleError(c, err)
 		return
@@ -134,7 +134,7 @@ func (h *Handler) ChangePassword(c *gin.Context) {
 // @Failure 500 {object} domain.ErrorResponse
 // @Router /users/me [delete]
 func (h *Handler) DeleteAccount(c *gin.Context) {
-	userID, err := getUserIDFromContext(c)
+	userId, err := getUserIdFromContext(c)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, domain.ErrorResponse{
 			Error:   "Unauthorized",
@@ -143,7 +143,7 @@ func (h *Handler) DeleteAccount(c *gin.Context) {
 		return
 	}
 
-	err = h.service.User.DeactivateUser(c.Request.Context(), userID)
+	err = h.service.User.DeactivateUser(c.Request.Context(), userId)
 	if err != nil {
 		h.handleError(c, err)
 		return
@@ -172,7 +172,7 @@ func (h *Handler) GetAllUsers(c *gin.Context) {
 	// Pagination parameters
 	page := getIntQueryParam(c, "page", 1)
 	limit := getIntQueryParam(c, "limit", 10)
-	
+
 	// Calculate offset
 	offset := (page - 1) * limit
 
@@ -185,7 +185,7 @@ func (h *Handler) GetAllUsers(c *gin.Context) {
 	domainUsers := make([]domain.UserResponse, len(users))
 	for i, user := range users {
 		domainUsers[i] = domain.UserResponse{
-			ID:              user.ID,
+			Id:              user.Id,
 			Email:           user.Email,
 			FirstName:       user.FirstName,
 			LastName:        user.LastName,
@@ -204,14 +204,14 @@ func (h *Handler) GetAllUsers(c *gin.Context) {
 	})
 }
 
-// GetUserById returns a user by ID (admin only)
-// @Summary Get user by ID
-// @Description Get a user by their ID (admin only)
+// GetUserById returns a user by Id (admin only)
+// @Summary Get user by Id
+// @Description Get a user by their Id (admin only)
 // @Tags admin
 // @Accept json
 // @Produce json
 // @Security Bearer
-// @Param id path string true "User ID"
+// @Param id path string true "User Id"
 // @Success 200 {object} domain.UserResponse
 // @Failure 400 {object} domain.ErrorResponse
 // @Failure 401 {object} domain.ErrorResponse
@@ -221,16 +221,16 @@ func (h *Handler) GetAllUsers(c *gin.Context) {
 // @Router /admin/users/{id} [get]
 func (h *Handler) GetUserById(c *gin.Context) {
 	idParam := c.Param("id")
-	userID, err := uuid.Parse(idParam)
+	userId, err := uuid.Parse(idParam)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, domain.ErrorResponse{
 			Error:   "Bad request",
-			Message: "Invalid user ID",
+			Message: "Invalid user Id",
 		})
 		return
 	}
 
-	user, err := h.service.User.GetUserByID(c.Request.Context(), userID)
+	user, err := h.service.User.GetUserById(c.Request.Context(), userId)
 	if err != nil {
 		h.handleError(c, err)
 		return
@@ -239,14 +239,14 @@ func (h *Handler) GetUserById(c *gin.Context) {
 	c.JSON(http.StatusOK, user)
 }
 
-// UpdateUser updates a user by ID (admin only)
-// @Summary Update user by ID
-// @Description Update a user by their ID (admin only)
+// UpdateUser updates a user by Id (admin only)
+// @Summary Update user by Id
+// @Description Update a user by their Id (admin only)
 // @Tags admin
 // @Accept json
 // @Produce json
 // @Security Bearer
-// @Param id path string true "User ID"
+// @Param id path string true "User Id"
 // @Param request body domain.UserUpdateRequest true "User details to update"
 // @Success 200 {object} domain.UserResponse
 // @Failure 400 {object} domain.ErrorResponse
@@ -257,11 +257,11 @@ func (h *Handler) GetUserById(c *gin.Context) {
 // @Router /admin/users/{id} [put]
 func (h *Handler) UpdateUser(c *gin.Context) {
 	idParam := c.Param("id")
-	userID, err := uuid.Parse(idParam)
+	userId, err := uuid.Parse(idParam)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, domain.ErrorResponse{
 			Error:   "Bad request",
-			Message: "Invalid user ID",
+			Message: "Invalid user Id",
 		})
 		return
 	}
@@ -275,7 +275,7 @@ func (h *Handler) UpdateUser(c *gin.Context) {
 		return
 	}
 
-	user, err := h.service.User.UpdateUser(c.Request.Context(), userID, req)
+	user, err := h.service.User.UpdateUser(c.Request.Context(), userId, req)
 	if err != nil {
 		h.handleError(c, err)
 		return
@@ -284,14 +284,14 @@ func (h *Handler) UpdateUser(c *gin.Context) {
 	c.JSON(http.StatusOK, user)
 }
 
-// DeleteUser completely removes a user by ID (admin only)
-// @Summary Delete user by ID
-// @Description Permanently delete a user by their ID (admin only)
+// DeleteUser completely removes a user by Id (admin only)
+// @Summary Delete user by Id
+// @Description Permanently delete a user by their Id (admin only)
 // @Tags admin
 // @Accept json
 // @Produce json
 // @Security Bearer
-// @Param id path string true "User ID"
+// @Param id path string true "User Id"
 // @Success 200 {object} domain.SuccessResponse
 // @Failure 400 {object} domain.ErrorResponse
 // @Failure 401 {object} domain.ErrorResponse
@@ -301,16 +301,16 @@ func (h *Handler) UpdateUser(c *gin.Context) {
 // @Router /admin/users/{id} [delete]
 func (h *Handler) DeleteUser(c *gin.Context) {
 	idParam := c.Param("id")
-	userID, err := uuid.Parse(idParam)
+	userId, err := uuid.Parse(idParam)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, domain.ErrorResponse{
 			Error:   "Bad request",
-			Message: "Invalid user ID",
+			Message: "Invalid user Id",
 		})
 		return
 	}
 
-	err = h.service.User.HardDeleteUser(c.Request.Context(), userID)
+	err = h.service.User.HardDeleteUser(c.Request.Context(), userId)
 	if err != nil {
 		h.handleError(c, err)
 		return

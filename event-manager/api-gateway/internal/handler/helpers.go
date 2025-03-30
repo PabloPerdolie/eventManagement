@@ -11,13 +11,13 @@ import (
 )
 
 var errorStatusMap = map[error]int{
-	domain.ErrInvalidCredentials:   http.StatusUnauthorized,
-	domain.ErrEmailAlreadyExists:    http.StatusConflict,
-	domain.ErrUserNotFound:         http.StatusNotFound,
-	domain.ErrInvalidToken:         http.StatusUnauthorized,
-	domain.ErrTokenExpired:         http.StatusUnauthorized,
-	domain.ErrInvalidResetToken:    http.StatusBadRequest,
-	domain.ErrUserNotActive:        http.StatusForbidden,
+	domain.ErrInvalidCredentials: http.StatusUnauthorized,
+	domain.ErrEmailAlreadyExists: http.StatusConflict,
+	domain.ErrUserNotFound:       http.StatusNotFound,
+	domain.ErrInvalidToken:       http.StatusUnauthorized,
+	domain.ErrTokenExpired:       http.StatusUnauthorized,
+	domain.ErrInvalidResetToken:  http.StatusBadRequest,
+	domain.ErrUserNotActive:      http.StatusForbidden,
 	//domain.ErrInsufficientPermission: http.StatusForbidden,
 }
 
@@ -79,15 +79,15 @@ func (h *Handler) handleError(c *gin.Context, err error) {
 	c.JSON(statusCode, errorResponse)
 }
 
-func getUserIDFromContext(c *gin.Context) (uuid.UUID, error) {
-	userID, exists := c.Get("userID")
+func getUserIdFromContext(c *gin.Context) (int, error) {
+	userId, exists := c.Get("userId")
 	if !exists {
-		return uuid.Nil, errors.New("user ID not found in context")
+		return uuid.Nil, errors.New("user Id not found in context")
 	}
 
-	id, ok := userID.(uuid.UUID)
+	id, ok := userId.(int)
 	if !ok {
-		return uuid.Nil, errors.New("user ID is not of type UUID")
+		return uuid.Nil, errors.New("user Id is not of type UUId")
 	}
 
 	return id, nil

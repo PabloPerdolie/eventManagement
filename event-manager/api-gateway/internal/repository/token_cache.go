@@ -35,10 +35,10 @@ func (r *Client) StoreResetToken(ctx context.Context, userId int, token string, 
 	return r.redisDb.Set(ctx, "reset:"+token, userId, expiry).Err()
 }
 
-func (r *Client) GetUserIDByResetToken(ctx context.Context, token string) (int, error) {
+func (r *Client) GetUserIdByResetToken(ctx context.Context, token string) (int, error) {
 	result, err := r.redisDb.Get(ctx, "reset:"+token).Result()
 	if err != nil {
-		return 0, errors.WithMessage(err, "GetUserIDByResetToken")
+		return 0, errors.WithMessage(err, "GetUserIdByResetToken")
 	}
 
 	res, err := strconv.Atoi(result)

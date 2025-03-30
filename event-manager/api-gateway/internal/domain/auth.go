@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/google/uuid"
 )
 
 type UserRole string
@@ -15,14 +14,13 @@ const (
 )
 
 type UserRegisterRequest struct {
-	Email     string `json:"email" binding:"required,email"`
-	Password  string `json:"password" binding:"required,min=8"`
-	FirstName string `json:"first_name" binding:"required"`
-	LastName  string `json:"last_name" binding:"required"`
+	Email    string `json:"email" binding:"required,email"`
+	Username string `json:"username" binding:"required,username"`
+	Password string `json:"password" binding:"required,min=8"`
 }
 
 type UserLoginRequest struct {
-	Email    string `json:"email" binding:"required,email"`
+	Username string `json:"username" binding:"required,username"`
 	Password string `json:"password" binding:"required"`
 }
 
@@ -32,14 +30,9 @@ type TokenPair struct {
 	ExpiresIn    int64  `json:"expires_in"`
 }
 
-type User struct {
-	Username string `json:"username"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
-}
-
 type UserResponse struct {
-	ID        uuid.UUID `json:"id"`
+	UserId    int       `json:"id"`
+	Username  string    `json:"username"`
 	Email     string    `json:"email"`
 	Role      UserRole  `json:"role"`
 	CreatedAt time.Time `json:"created_at"`
@@ -57,7 +50,7 @@ type RefreshTokenRequest struct {
 }
 
 type JWTClaims struct {
-	UserID uuid.UUID `json:"user_id"`
-	Role   string    `json:"role"`
+	UserId int    `json:"user_id"`
+	Role   string `json:"role"`
 	jwt.RegisteredClaims
 }

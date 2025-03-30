@@ -13,11 +13,11 @@ import (
 
 // Service contains all the services for the application
 type Service struct {
-	Auth     auth.Service
-	User     *user.Service
-	Proxy    *proxy.Service
-	Comment  *comment.Service
-	logger   *zap.SugaredLogger
+	Auth    auth.Service
+	User    *user.Service
+	Proxy   *proxy.Service
+	Comment *comment.Service
+	logger  *zap.SugaredLogger
 }
 
 // New creates a new service
@@ -25,7 +25,7 @@ func New(repo *repository.Repository, redisClient *redis.Client, cfg *config.Con
 	authService := auth.New(repo.User, redisClient, cfg.JWTSecretKey, cfg.JWTAccessExpiration, cfg.JWTRefreshExpiration, cfg.PasswordResetExpiration)
 	userService := user.New(repo.User, logger)
 	proxyService := proxy.New(cfg.CoreServiceURL, cfg.NotificationServiceURL, cfg.CommunicationServiceURL, logger)
-	
+
 	commentService, err := comment.New(cfg, logger)
 	if err != nil {
 		logger.Errorw("Failed to initialize comment service", "error", err)
@@ -33,11 +33,11 @@ func New(repo *repository.Repository, redisClient *redis.Client, cfg *config.Con
 	}
 
 	return &Service{
-		Auth:     authService,
-		User:     userService,
-		Proxy:    proxyService,
-		Comment:  commentService,
-		logger:   logger,
+		Auth:    authService,
+		User:    userService,
+		Proxy:   proxyService,
+		Comment: commentService,
+		logger:  logger,
 	}
 }
 
