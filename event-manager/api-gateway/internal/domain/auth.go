@@ -33,27 +33,16 @@ type TokenPair struct {
 }
 
 type User struct {
-	ID              uuid.UUID `json:"id"`
-	Email           string    `json:"email"`
-	PasswordHash    string    `json:"-"`
-	FirstName       string    `json:"first_name"`
-	LastName        string    `json:"last_name"`
-	Role            UserRole  `json:"role"`
-	IsActive        bool      `json:"is_active"`
-	IsEmailVerified bool      `json:"is_email_verified"`
-	CreatedAt       time.Time `json:"created_at"`
-	UpdatedAt       time.Time `json:"updated_at"`
+	Username string `json:"username"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
 type UserResponse struct {
-	ID              uuid.UUID `json:"id"`
-	Email           string    `json:"email"`
-	FirstName       string    `json:"first_name"`
-	LastName        string    `json:"last_name"`
-	Role            UserRole  `json:"role"`
-	IsEmailVerified bool      `json:"is_email_verified"`
-	CreatedAt       time.Time `json:"created_at"`
-	UpdatedAt       time.Time `json:"updated_at,omitempty"`
+	ID        uuid.UUID `json:"id"`
+	Email     string    `json:"email"`
+	Role      UserRole  `json:"role"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type AuthResponse struct {

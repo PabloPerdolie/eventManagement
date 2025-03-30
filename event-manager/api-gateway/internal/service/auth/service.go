@@ -57,15 +57,11 @@ func (s Service) Register(ctx context.Context, req domain.UserRegisterRequest) (
 	}
 
 	user := domain.User{
-		ID:              uuid.New(),
-		Email:           req.Email,
-		FirstName:       req.FirstName,
-		LastName:        req.LastName,
-		Role:            domain.RoleUser,
-		IsActive:        true,
-		IsEmailVerified: false,
-		CreatedAt:       time.Now(),
-		UpdatedAt:       time.Now(),
+		Email:     req.Email,
+		Role:      domain.RoleUser,
+		IsActive:  true,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
 	}
 
 	passwordHash, err := hashPassword(req.Password)
@@ -85,13 +81,10 @@ func (s Service) Register(ctx context.Context, req domain.UserRegisterRequest) (
 
 	return &domain.AuthResponse{
 		User: domain.UserResponse{
-			ID:              user.ID,
-			Email:           user.Email,
-			FirstName:       user.FirstName,
-			LastName:        user.LastName,
-			Role:            user.Role,
-			IsEmailVerified: user.IsEmailVerified,
-			CreatedAt:       user.CreatedAt,
+			ID:        user.ID,
+			Email:     user.Email,
+			Role:      user.Role,
+			CreatedAt: user.CreatedAt,
 		},
 		AccessToken:  tokenPair.AccessToken,
 		RefreshToken: tokenPair.RefreshToken,
