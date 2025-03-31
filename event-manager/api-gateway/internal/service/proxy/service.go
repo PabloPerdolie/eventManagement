@@ -9,7 +9,6 @@ import (
 	"go.uber.org/zap"
 )
 
-// Service handles forwarding requests to appropriate services
 type Service struct {
 	coreServiceURL          string
 	notificationServiceURL  string
@@ -17,7 +16,6 @@ type Service struct {
 	logger                  *zap.SugaredLogger
 }
 
-// New creates a new proxy service
 func New(coreURL, notificationURL, communicationURL string, logger *zap.SugaredLogger) *Service {
 	return &Service{
 		coreServiceURL:          coreURL,
@@ -27,7 +25,6 @@ func New(coreURL, notificationURL, communicationURL string, logger *zap.SugaredL
 	}
 }
 
-// NewCoreServiceProxy creates a new reverse proxy for the core service
 func (s *Service) NewCoreServiceProxy() (*httputil.ReverseProxy, error) {
 	coreURL, err := url.Parse(s.coreServiceURL)
 	if err != nil {
@@ -41,7 +38,6 @@ func (s *Service) NewCoreServiceProxy() (*httputil.ReverseProxy, error) {
 	return proxy, nil
 }
 
-// NewNotificationServiceProxy creates a new reverse proxy for the notification service
 func (s *Service) NewNotificationServiceProxy() (*httputil.ReverseProxy, error) {
 	notificationURL, err := url.Parse(s.notificationServiceURL)
 	if err != nil {
@@ -55,7 +51,6 @@ func (s *Service) NewNotificationServiceProxy() (*httputil.ReverseProxy, error) 
 	return proxy, nil
 }
 
-// NewCommunicationServiceProxy creates a new reverse proxy for the communication service
 func (s *Service) NewCommunicationServiceProxy() (*httputil.ReverseProxy, error) {
 	communicationURL, err := url.Parse(s.communicationServiceURL)
 	if err != nil {
@@ -69,26 +64,21 @@ func (s *Service) NewCommunicationServiceProxy() (*httputil.ReverseProxy, error)
 	return proxy, nil
 }
 
-// updateProxyDirector modifies the proxy director to update request headers and path
 func (s *Service) updateProxyDirector(proxy *httputil.ReverseProxy, target *url.URL) {
 	originalDirector := proxy.Director
-	
+
 	proxy.Director = func(req *http.Request) {
 		start := time.Now()
 		originalDirector(req)
-		
-		// Update the Host header to the target host
+
 		req.Host = target.Host
-		
-		// Set X-Forwarded-* headers
+
 		req.Header.Set("X-Forwarded-Host", req.Host)
 		req.Header.Set("X-Origin-Host", req.Header.Get("Host"))
-		req.Header.Set("X-Forwarded-Proto", "http") // Use "https" if necessary
-		
-		// Add any additional headers or modifications
+		req.Header.Set("X-Forwarded-Proto", "http")
+
 		req.Header.Set("X-Proxy-By", "api-gateway")
-		
-		// Log request information
+
 		s.logger.Infow("Proxying request",
 			"method", req.Method,
 			"path", req.URL.Path,
@@ -99,7 +89,6 @@ func (s *Service) updateProxyDirector(proxy *httputil.ReverseProxy, target *url.
 	}
 }
 
-// setupProxyErrorHandler configures an error handler for the proxy
 func (s *Service) setupProxyErrorHandler(proxy *httputil.ReverseProxy, serviceName string) {
 	proxy.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
 		s.logger.Errorw("Proxy error",
@@ -108,16 +97,14 @@ func (s *Service) setupProxyErrorHandler(proxy *httputil.ReverseProxy, serviceNa
 			"path", r.URL.Path,
 			"error", err,
 		)
-		
+
 		w.WriteHeader(http.StatusBadGateway)
 		w.Header().Set("Content-Type", "application/json")
-		
-		// Send an error response to the client
+
 		errorResponse := `{"error":"Service Unavailable","message":"The requested service is temporarily unavailable. Please try again later."}`
 		w.Write([]byte(errorResponse))
 	}
-	
-	// Add response modifier to log response status
+
 	proxy.ModifyResponse = func(resp *http.Response) error {
 		s.logger.Infow("Proxy response received",
 			"service", serviceName,

@@ -5,8 +5,8 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/event-management/api-gateway/internal/domain"
-	"github.com/event-management/api-gateway/internal/model"
+	"github.com/PabloPerdolie/event-manager/api-gateway/internal/domain"
+	"github.com/PabloPerdolie/event-manager/api-gateway/internal/model"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 )

@@ -2,12 +2,12 @@ package auth
 
 import (
 	"context"
-	"github.com/event-management/api-gateway/internal/model"
+	"github.com/PabloPerdolie/event-manager/api-gateway/internal/model"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/bcrypt"
 	"time"
 
-	"github.com/event-management/api-gateway/internal/domain"
+	"github.com/PabloPerdolie/event-manager/api-gateway/internal/domain"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 )

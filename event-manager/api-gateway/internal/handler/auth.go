@@ -1,11 +1,32 @@
 package handler
 
 import (
+	"context"
 	"net/http"
 
-	"github.com/event-management/api-gateway/internal/domain"
+	"github.com/PabloPerdolie/event-manager/api-gateway/internal/domain"
 	"github.com/gin-gonic/gin"
 )
+
+type AuthService interface {
+	Register(ctx context.Context, req domain.UserRegisterRequest) (*domain.AuthResponse, error)
+	Login(ctx context.Context, req domain.UserLoginRequest) (*domain.AuthResponse, error)
+	RefreshToken(ctx context.Context, refreshToken string) (*domain.TokenPair, error)
+	Logout(ctx context.Context, token string) error
+	ValidateToken(ctx context.Context, tokenString string) (*domain.JWTClaims, error)
+	GetUserInfo(ctx context.Context, userId int) (*domain.UserResponse, error)
+	CreatePasswordResetToken(ctx context.Context, email string) (string, error)
+}
+
+type Auth struct {
+	authService AuthService
+}
+
+func NewAuth(authService AuthService) Auth {
+	return Auth{
+		authService: authService,
+	}
+}
 
 // Register handles user registration
 // @Summary Register a new user
@@ -19,7 +40,7 @@ import (
 // @Failure 409 {object} domain.ErrorResponse
 // @Failure 500 {object} domain.ErrorResponse
 // @Router /auth/register [post]
-func (h *Handler) Register(c *gin.Context) {
+func (h *Auth) Register(c *gin.Context) {
 	var req domain.UserRegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, domain.ErrorResponse{
@@ -28,9 +49,9 @@ func (h *Handler) Register(c *gin.Context) {
 		})
 		return
 	}
-	resp, err := h.service.Auth.Register(c.Request.Context(), req)
+	resp, err := h.authService.Register(c.Request.Context(), req)
 	if err != nil {
-		h.handleError(c, err)
+		handleError(c, err)
 		return
 	}
 	c.JSON(http.StatusCreated, resp)
@@ -48,7 +69,7 @@ func (h *Handler) Register(c *gin.Context) {
 // @Failure 401 {object} domain.ErrorResponse
 // @Failure 500 {object} domain.ErrorResponse
 // @Router /auth/login [post]
-func (h *Handler) Login(c *gin.Context) {
+func (h *Auth) Login(c *gin.Context) {
 	var req domain.UserLoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, domain.ErrorResponse{
@@ -58,9 +79,9 @@ func (h *Handler) Login(c *gin.Context) {
 		return
 	}
 
-	resp, err := h.service.Auth.Login(c.Request.Context(), req)
+	resp, err := h.authService.Login(c.Request.Context(), req)
 	if err != nil {
-		h.handleError(c, err)
+		handleError(c, err)
 		return
 	}
 
@@ -78,7 +99,7 @@ func (h *Handler) Login(c *gin.Context) {
 // @Failure 401 {object} domain.ErrorResponse
 // @Failure 500 {object} domain.ErrorResponse
 // @Router /auth/logout [post]
-func (h *Handler) Logout(c *gin.Context) {
+func (h *Auth) Logout(c *gin.Context) {
 	token := extractTokenFromHeader(c)
 	if token == "" {
 		c.JSON(http.StatusUnauthorized, domain.ErrorResponse{
@@ -88,9 +109,9 @@ func (h *Handler) Logout(c *gin.Context) {
 		return
 	}
 
-	err := h.service.Auth.Logout(c.Request.Context(), token)
+	err := h.authService.Logout(c.Request.Context(), token)
 	if err != nil {
-		h.handleError(c, err)
+		handleError(c, err)
 		return
 	}
 
@@ -111,7 +132,7 @@ func (h *Handler) Logout(c *gin.Context) {
 // @Failure 401 {object} domain.ErrorResponse
 // @Failure 500 {object} domain.ErrorResponse
 // @Router /auth/refresh [post]
-func (h *Handler) RefreshToken(c *gin.Context) {
+func (h *Auth) RefreshToken(c *gin.Context) {
 	var req domain.RefreshTokenRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, domain.ErrorResponse{
@@ -121,81 +142,80 @@ func (h *Handler) RefreshToken(c *gin.Context) {
 		return
 	}
 
-	resp, err := h.service.Auth.RefreshToken(c.Request.Context(), req.RefreshToken)
+	resp, err := h.authService.RefreshToken(c.Request.Context(), req.RefreshToken)
 	if err != nil {
-		h.handleError(c, err)
+		handleError(c, err)
 		return
 	}
 
 	c.JSON(http.StatusOK, resp)
 }
 
-// ForgotPassword initiates the password reset process
-// @Summary Request password reset
-// @Description Request a password reset email
-// @Tags auth
-// @Accept json
-// @Produce json
-// @Param request body domain.ForgotPasswordRequest true "Email address"
-// @Success 200 {object} domain.SuccessResponse
-// @Failure 400 {object} domain.ErrorResponse
-// @Failure 500 {object} domain.ErrorResponse
-// @Router /auth/forgot-password [post]
-func (h *Handler) ForgotPassword(c *gin.Context) {
-	var req domain.ForgotPasswordRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, domain.ErrorResponse{
-			Error:   "Bad request",
-			Message: err.Error(),
-		})
-		return
-	}
+//// ForgotPassword initiates the password reset process
+//// @Summary Request password reset
+//// @Description Request a password reset email
+//// @Tags auth
+//// @Accept json
+//// @Produce json
+//// @Param request body domain.ForgotPasswordRequest true "Email address"
+//// @Success 200 {object} domain.SuccessResponse
+//// @Failure 400 {object} domain.ErrorResponse
+//// @Failure 500 {object} domain.ErrorResponse
+//// @Router /auth/forgot-password [post]
+//func (h *Auth) ForgotPassword(c *gin.Context) {
+//	var req domain.ForgotPasswordRequest
+//	if err := c.ShouldBindJSON(&req); err != nil {
+//		c.JSON(http.StatusBadRequest, domain.ErrorResponse{
+//			Error:   "Bad request",
+//			Message: err.Error(),
+//		})
+//		return
+//	}
+//
+//	err := h.authService.ForgotPassword(c.Request.Context(), req.Email)
+//	if err != nil {
+//		handleError(c, err)
+//		return
+//	}
+//
+//	c.JSON(http.StatusOK, domain.SuccessResponse{
+//		Message: "If your email is registered, you will receive a password reset link",
+//	})
+//}
 
-	err := h.service.Password.ForgotPassword(c.Request.Context(), req.Email)
-	if err != nil {
-		h.handleError(c, err)
-		return
-	}
+//// ResetPassword resets a user's password using a token
+//// @Summary Reset password
+//// @Description Reset a user's password using a valid reset token
+//// @Tags auth
+//// @Accept json
+//// @Produce json
+//// @Param request body domain.ResetPasswordRequest true "Reset token and new password"
+//// @Success 200 {object} domain.SuccessResponse
+//// @Failure 400 {object} domain.ErrorResponse
+//// @Failure 401 {object} domain.ErrorResponse
+//// @Failure 500 {object} domain.ErrorResponse
+//// @Router /auth/reset-password [post]
+//func (h *Auth) ResetPassword(c *gin.Context) {
+//	var req domain.ResetPasswordRequest
+//	if err := c.ShouldBindJSON(&req); err != nil {
+//		c.JSON(http.StatusBadRequest, domain.ErrorResponse{
+//			Error:   "Bad request",
+//			Message: err.Error(),
+//		})
+//		return
+//	}
+//
+//	err := h.authService.ResetPassword(c.Request.Context(), req)
+//	if err != nil {
+//		handleError(c, err)
+//		return
+//	}
+//
+//	c.JSON(http.StatusOK, domain.SuccessResponse{
+//		Message: "Password has been successfully reset",
+//	})
+//}
 
-	c.JSON(http.StatusOK, domain.SuccessResponse{
-		Message: "If your email is registered, you will receive a password reset link",
-	})
-}
-
-// ResetPassword resets a user's password using a token
-// @Summary Reset password
-// @Description Reset a user's password using a valid reset token
-// @Tags auth
-// @Accept json
-// @Produce json
-// @Param request body domain.ResetPasswordRequest true "Reset token and new password"
-// @Success 200 {object} domain.SuccessResponse
-// @Failure 400 {object} domain.ErrorResponse
-// @Failure 401 {object} domain.ErrorResponse
-// @Failure 500 {object} domain.ErrorResponse
-// @Router /auth/reset-password [post]
-func (h *Handler) ResetPassword(c *gin.Context) {
-	var req domain.ResetPasswordRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, domain.ErrorResponse{
-			Error:   "Bad request",
-			Message: err.Error(),
-		})
-		return
-	}
-
-	err := h.service.Password.ResetPassword(c.Request.Context(), req)
-	if err != nil {
-		h.handleError(c, err)
-		return
-	}
-
-	c.JSON(http.StatusOK, domain.SuccessResponse{
-		Message: "Password has been successfully reset",
-	})
-}
-
-// Helper function to extract token from Authorization header
 func extractTokenFromHeader(c *gin.Context) string {
 	bearerToken := c.GetHeader("Authorization")
 	if len(bearerToken) > 7 && bearerToken[:7] == "Bearer " {

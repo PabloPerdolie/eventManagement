@@ -8,9 +8,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/event-management/api-gateway/internal/assembly"
-	"github.com/event-management/api-gateway/internal/config"
-	"github.com/event-management/api-gateway/internal/routes"
+	"github.com/PabloPerdolie/event-manager/api-gateway/internal/assembly"
+	"github.com/PabloPerdolie/event-manager/api-gateway/internal/config"
+	"github.com/PabloPerdolie/event-manager/api-gateway/internal/routes"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"go.uber.org/zap"
@@ -45,7 +45,7 @@ func main() {
 	defer locator.Close()
 
 	router := gin.Default()
-	routes.SetupRoutes(router, cfg, locator.Handler, locator.Middleware)
+	routes.SetupRoutes(router, cfg, locator.Controllers, locator.Middleware)
 
 	srv := &http.Server{
 		Addr:    ":" + cfg.Port,

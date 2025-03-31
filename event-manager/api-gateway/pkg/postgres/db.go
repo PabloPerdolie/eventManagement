@@ -1,20 +1,19 @@
-package storage
+package postgres
 
 import (
 	"database/sql"
 	"embed"
-	"github.com/PabloPerdolie/event-manager/communication-service/internal/config"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	"github.com/pressly/goose/v3"
 	"go.uber.org/zap"
 )
 
-//go:embed ../../migrations/*.sql
+//go:embed migrations/*.sql
 var migrations embed.FS
 
-func InitDB(logger *zap.SugaredLogger, cfg config.Config) (*sqlx.DB, error) {
-	db, err := sqlx.Connect("postgres", cfg.Postgres.GetDSN())
+func InitDB(logger *zap.SugaredLogger, dbUrl string) (*sqlx.DB, error) {
+	db, err := sqlx.Connect("postgres", dbUrl)
 	if err != nil {
 		return nil, errors.WithMessage(err, "connect to database")
 	}

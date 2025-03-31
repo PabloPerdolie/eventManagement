@@ -3,7 +3,7 @@ package model
 import (
 	"time"
 
-	"github.com/event-management/api-gateway/internal/domain"
+	"github.com/PabloPerdolie/event-manager/api-gateway/internal/domain"
 )
 
 //CREATE TABLE users

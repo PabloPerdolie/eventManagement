@@ -3,25 +3,26 @@ package middleware
 import (
 	"context"
 	"fmt"
+	"github.com/PabloPerdolie/event-manager/api-gateway/internal/domain"
+	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 	"net/http"
 	"strings"
-	"time"
-
-	"github.com/event-management/api-gateway/internal/domain"
-	"github.com/gin-gonic/gin"
-	"github.com/go-redis/redis/v8"
-	"github.com/golang-jwt/jwt/v5"
 )
 
-type AuthMiddleware struct {
-	jwtSecret   string
-	redisClient *redis.Client
+type TokenCache interface {
+	IsTokenBlacklisted(ctx context.Context, token string) (bool, error)
 }
 
-func NewAuthMiddleware(jwtSecret string, redisClient *redis.Client) *AuthMiddleware {
+type AuthMiddleware struct {
+	jwtSecret  string
+	tokenCache TokenCache
+}
+
+func NewAuthMiddleware(jwtSecret string, tokenCache TokenCache) *AuthMiddleware {
 	return &AuthMiddleware{
-		jwtSecret:   jwtSecret,
-		redisClient: redisClient,
+		jwtSecret:  jwtSecret,
+		tokenCache: tokenCache,
 	}
 }
 
@@ -49,14 +50,19 @@ func (m *AuthMiddleware) Authenticate() gin.HandlerFunc {
 			}
 			return []byte(m.jwtSecret), nil
 		})
-
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
 			c.Abort()
 			return
 		}
 
-		if m.isTokenBlacklisted(c, tokenString) {
+		isTokenBlacklisted, err := m.tokenCache.IsTokenBlacklisted(c, tokenString)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid or expired token"})
+			c.Abort()
+			return
+		}
+		if isTokenBlacklisted {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Token has been revoked"})
 			c.Abort()
 			return
@@ -91,21 +97,4 @@ func (m *AuthMiddleware) AuthenticateAdmin() gin.HandlerFunc {
 
 		c.Next()
 	}
-}
-
-func (m *AuthMiddleware) isTokenBlacklisted(c *gin.Context, token string) bool {
-	blacklistKey := fmt.Sprintf("blacklist:%s", token)
-
-	result, err := m.redisClient.Exists(c, blacklistKey).Result()
-	if err != nil {
-		// If there's an error checking Redis, log it but allow the operation to continue
-		return false
-	}
-
-	return result > 0
-}
-
-func (m *AuthMiddleware) BlacklistToken(ctx context.Context, token string, expiry time.Duration) error {
-	blacklistKey := fmt.Sprintf("blacklist:%s", token)
-	return m.redisClient.Set(ctx, blacklistKey, "revoked", expiry).Err()
 }

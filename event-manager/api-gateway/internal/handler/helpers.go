@@ -5,9 +5,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/event-management/api-gateway/internal/domain"
+	"github.com/PabloPerdolie/event-manager/api-gateway/internal/domain"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 )
 
 var errorStatusMap = map[error]int{
@@ -21,7 +20,7 @@ var errorStatusMap = map[error]int{
 	//domain.ErrInsufficientPermission: http.StatusForbidden,
 }
 
-func (h *Handler) handleError(c *gin.Context, err error) {
+func handleError(c *gin.Context, err error) {
 	var statusCode int
 	var errorResponse domain.ErrorResponse
 
@@ -82,12 +81,12 @@ func (h *Handler) handleError(c *gin.Context, err error) {
 func getUserIdFromContext(c *gin.Context) (int, error) {
 	userId, exists := c.Get("userId")
 	if !exists {
-		return uuid.Nil, errors.New("user Id not found in context")
+		return 0, errors.New("user Id not found in context")
 	}
 
 	id, ok := userId.(int)
 	if !ok {
-		return uuid.Nil, errors.New("user Id is not of type UUId")
+		return 0, errors.New("user Id is not of type UUId")
 	}
 
 	return id, nil
