@@ -15,12 +15,12 @@ const (
 
 type UserRegisterRequest struct {
 	Email    string `json:"email" binding:"required,email"`
-	Username string `json:"username" binding:"required,username"`
+	Username string `json:"username" binding:"required"`
 	Password string `json:"password" binding:"required,min=8"`
 }
 
 type UserLoginRequest struct {
-	Username string `json:"username" binding:"required,username"`
+	Username string `json:"username" binding:"required"`
 	Password string `json:"password" binding:"required"`
 }
 

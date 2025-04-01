@@ -53,7 +53,7 @@ func New(repo Repository, tokenStore TokenRepo, jwtSecret string, accessExp, ref
 
 func (s Service) Register(ctx context.Context, req domain.UserRegisterRequest) (*domain.AuthResponse, error) {
 	exists, err := s.repo.GetUserByEmail(ctx, req.Email)
-	if err != nil {
+	if err != nil && !errors.Is(err, domain.ErrUserNotFound) {
 		return nil, errors.WithMessage(err, "get user by email")
 	}
 	if exists != nil {
@@ -69,6 +69,8 @@ func (s Service) Register(ctx context.Context, req domain.UserRegisterRequest) (
 		Email:        req.Email,
 		PasswordHash: passwordHash,
 		Username:     req.Username,
+		Role:         domain.RoleUser,
+		CreatedAt:    time.Now(),
 	}
 
 	id, err := s.repo.CreateUser(ctx, user)

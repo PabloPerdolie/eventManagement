@@ -48,7 +48,7 @@ func NewServiceLocator(cfg *config.Config, logger *zap.SugaredLogger) (*ServiceL
 		ProxyCtrl: proxyCtrl,
 	}
 
-	middleware := middleware.NewAuthMiddleware(cfg.JWTSecretKey, &tokenCacheRepo)
+	middleware := middleware.NewAuthMiddleware(authService)
 
 	return &ServiceLocator{
 		Config:      cfg,

@@ -3,7 +3,6 @@ package repository
 import (
 	"context"
 	"database/sql"
-	"time"
 
 	"github.com/PabloPerdolie/event-manager/api-gateway/internal/domain"
 	"github.com/PabloPerdolie/event-manager/api-gateway/internal/model"
@@ -23,20 +22,17 @@ func NewPostgresRepository(db *sqlx.DB) *PostgresRepository {
 
 func (r *PostgresRepository) CreateUser(ctx context.Context, user model.User) (int, error) {
 	query := `
-		INSERT INTO users (username, password_hash, email, is_active, is_deleted, role, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
-		RETURNING user_id
-	`
+		INSERT INTO users (username, password_hash, email, role, created_at)
+		VALUES ($1, $2, $3, $4, $5)
+		RETURNING user_id`
 
 	var id int
 	err := r.db.QueryRowContext(ctx, query,
 		user.Username,
 		user.PasswordHash,
 		user.Email,
-		user.IsActive,
-		user.IsDeleted,
 		user.Role,
-		time.Now(),
+		user.CreatedAt,
 	).Scan(&id)
 	if err != nil {
 		return 0, errors.WithMessage(err, "create user")
