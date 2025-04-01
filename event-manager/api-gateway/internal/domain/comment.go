@@ -2,7 +2,6 @@ package domain
 
 import "time"
 
-// CommentResponse represents a comment returned to the client
 type CommentResponse struct {
 	CommentId int       `json:"comment_id"`
 	EventId   int       `json:"event_id"`
@@ -12,13 +11,11 @@ type CommentResponse struct {
 	IsRead    bool      `json:"is_read"`
 }
 
-// CommentCreateRequest represents a request to create a new comment
 type CommentCreateRequest struct {
 	EventId int    `json:"event_id" binding:"required"`
 	Content string `json:"content" binding:"required"`
 }
 
-// CommentListResponse represents a list of comments
 type CommentListResponse struct {
 	Comments []CommentResponse `json:"comments"`
 	Total    int               `json:"total"`

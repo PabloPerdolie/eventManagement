@@ -73,12 +73,12 @@ func (s Service) Register(ctx context.Context, req domain.UserRegisterRequest) (
 
 	id, err := s.repo.CreateUser(ctx, user)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithMessage(err, "create user")
 	}
 
 	tokenPair, err := s.generateTokenPair(id, string(user.Role))
 	if err != nil {
-		return nil, err
+		return nil, errors.WithMessage(err, "generate token pair")
 	}
 
 	return &domain.AuthResponse{
@@ -111,7 +111,7 @@ func (s Service) Login(ctx context.Context, req domain.UserLoginRequest) (*domai
 
 	tokenPair, err := s.generateTokenPair(user.UserId, string(user.Role))
 	if err != nil {
-		return nil, err
+		return nil, errors.WithMessage(err, "generate token pair")
 	}
 
 	return &domain.AuthResponse{
@@ -132,7 +132,7 @@ func (s Service) Login(ctx context.Context, req domain.UserLoginRequest) (*domai
 func (s Service) RefreshToken(ctx context.Context, refreshToken string) (*domain.TokenPair, error) {
 	isBlacklisted, err := s.tokenStore.IsTokenBlacklisted(ctx, refreshToken)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithMessage(err, "is token blacklisted")
 	}
 	if isBlacklisted {
 		return nil, domain.ErrInvalidToken
@@ -151,12 +151,12 @@ func (s Service) RefreshToken(ctx context.Context, refreshToken string) (*domain
 	}
 
 	if err := s.tokenStore.BlacklistToken(ctx, refreshToken, s.refreshTokenExpiry); err != nil {
-		return nil, err
+		return nil, errors.WithMessage(err, "blacklist token")
 	}
 
 	user, err := s.repo.GetUserById(ctx, claims.UserId)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithMessage(err, "get user by id")
 	}
 
 	if !user.IsActive {
@@ -175,7 +175,7 @@ func (s Service) Logout(ctx context.Context, token string) error {
 func (s Service) ValidateToken(ctx context.Context, tokenString string) (*domain.JWTClaims, error) {
 	isBlacklisted, err := s.tokenStore.IsTokenBlacklisted(ctx, tokenString)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithMessage(err, "is token black listed")
 	}
 	if isBlacklisted {
 		return nil, domain.ErrInvalidToken
@@ -200,7 +200,7 @@ func (s Service) ValidateToken(ctx context.Context, tokenString string) (*domain
 func (s Service) GetUserInfo(ctx context.Context, userId int) (*domain.UserResponse, error) {
 	user, err := s.repo.GetUserById(ctx, userId)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithMessage(err, "get user by id")
 	}
 
 	return &domain.UserResponse{
@@ -251,7 +251,7 @@ func (s Service) generateTokenPair(userId int, role string) (*domain.TokenPair, 
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims)
 	accessTokenString, err := accessToken.SignedString([]byte(s.jwtSecret))
 	if err != nil {
-		return nil, err
+		return nil, errors.WithMessage(err, "signed string")
 	}
 
 	refreshClaims := domain.JWTClaims{
@@ -270,7 +270,7 @@ func (s Service) generateTokenPair(userId int, role string) (*domain.TokenPair, 
 	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims)
 	refreshTokenString, err := refreshToken.SignedString([]byte(s.jwtSecret))
 	if err != nil {
-		return nil, err
+		return nil, errors.WithMessage(err, "signed string")
 	}
 
 	return &domain.TokenPair{

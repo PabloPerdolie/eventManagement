@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"github.com/pkg/errors"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -28,7 +29,7 @@ func New(coreURL, notificationURL, communicationURL string, logger *zap.SugaredL
 func (s *Service) NewCoreServiceProxy() (*httputil.ReverseProxy, error) {
 	coreURL, err := url.Parse(s.coreServiceURL)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithMessage(err, "parse url")
 	}
 
 	proxy := httputil.NewSingleHostReverseProxy(coreURL)
@@ -41,7 +42,7 @@ func (s *Service) NewCoreServiceProxy() (*httputil.ReverseProxy, error) {
 func (s *Service) NewNotificationServiceProxy() (*httputil.ReverseProxy, error) {
 	notificationURL, err := url.Parse(s.notificationServiceURL)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithMessage(err, "parse url")
 	}
 
 	proxy := httputil.NewSingleHostReverseProxy(notificationURL)
@@ -54,7 +55,7 @@ func (s *Service) NewNotificationServiceProxy() (*httputil.ReverseProxy, error) 
 func (s *Service) NewCommunicationServiceProxy() (*httputil.ReverseProxy, error) {
 	communicationURL, err := url.Parse(s.communicationServiceURL)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithMessage(err, "parse url")
 	}
 
 	proxy := httputil.NewSingleHostReverseProxy(communicationURL)

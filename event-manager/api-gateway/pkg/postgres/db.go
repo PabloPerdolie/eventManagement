@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"embed"
 	"github.com/jmoiron/sqlx"
+	_ "github.com/lib/pq"
 	"github.com/pkg/errors"
 	"github.com/pressly/goose/v3"
 	"go.uber.org/zap"
@@ -13,13 +14,14 @@ import (
 var migrations embed.FS
 
 func InitDB(logger *zap.SugaredLogger, dbUrl string) (*sqlx.DB, error) {
+	logger.Infof("Connecting to DB with URL: %s", dbUrl)
 	db, err := sqlx.Connect("postgres", dbUrl)
 	if err != nil {
 		return nil, errors.WithMessage(err, "connect to database")
 	}
 
 	if err := runMigrations(logger, db.DB, "migrations"); err != nil {
-		return nil, err
+		return nil, errors.WithMessage(err, "run migrations")
 	}
 
 	return db, nil
