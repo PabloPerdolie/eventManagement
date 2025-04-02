@@ -13,7 +13,7 @@ RUN go mod download
 COPY . .
 
 # Компилируем приложение 
-RUN CGO_ENABLED=0 GOOS=linux go build -a -o notification-service .
+RUN CGO_ENABLED=0 GOOS=linux go build -a -o communication-service .
 
 # Финальный образ
 FROM alpine:latest
@@ -24,7 +24,7 @@ WORKDIR /app
 RUN apk --no-cache add ca-certificates tzdata
 
 # Копируем исполняемый файл из builder
-COPY --from=builder /app/notification-service .
+COPY --from=builder /app/communication-service .
 COPY --from=builder /app/.env .
 
 # Экспортируем порт

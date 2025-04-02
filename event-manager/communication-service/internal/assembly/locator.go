@@ -7,8 +7,9 @@ import (
 	"github.com/PabloPerdolie/event-manager/communication-service/internal/repository"
 	"github.com/PabloPerdolie/event-manager/communication-service/internal/routes"
 	"github.com/PabloPerdolie/event-manager/communication-service/internal/service"
-	"github.com/PabloPerdolie/event-manager/communication-service/internal/storage"
+	"github.com/PabloPerdolie/event-manager/communication-service/pkg/postgres"
 	_ "github.com/lib/pq"
+	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )
 
@@ -19,9 +20,9 @@ type ServiceLocator struct {
 }
 
 func NewLocator(cfg *config.Config, logger *zap.SugaredLogger) (*ServiceLocator, error) {
-	db, err := storage.InitDB(logger, *cfg)
+	db, err := postgres.InitDB(logger, cfg.DatabaseURL)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithMessage(err, "init db")
 	}
 
 	commentRepo := repository.New(db)

@@ -30,7 +30,7 @@ func New(handler Handler, config *config.Config, logger *zap.SugaredLogger) *Rab
 
 func (c *RabbitMQConsumer) Start() error {
 	var err error
-	c.connection, err = amqp.Dial(c.config.RabbitMQ.GetRabbitMQURL())
+	c.connection, err = amqp.Dial(c.config.RabbitMQURL)
 	if err != nil {
 		return errors.WithMessage(err, "connect to RabbitMQ")
 	}
@@ -42,12 +42,12 @@ func (c *RabbitMQConsumer) Start() error {
 	}
 
 	queue, err := c.channel.QueueDeclare(
-		c.config.RabbitMQ.Queue, // name
-		true,                    // durable
-		false,                   // delete when unused
-		false,                   // exclusive
-		false,                   // no-wait
-		nil,                     // arguments
+		c.config.CommentQueueName, // name
+		true,                      // durable
+		false,                     // delete when unused
+		false,                     // exclusive
+		false,                     // no-wait
+		nil,                       // arguments
 	)
 	if err != nil {
 		c.cleanup()
@@ -78,7 +78,7 @@ func (c *RabbitMQConsumer) Start() error {
 		return errors.WithMessage(err, "register a consumer")
 	}
 
-	c.logger.Infof("Connected to RabbitMQ and consuming from queue: %s", c.config.RabbitMQ.Queue)
+	c.logger.Infof("Connected to RabbitMQ and consuming from queue: %s", c.config.CommentQueueName)
 
 	for msg := range msgs {
 		c.handler.ProcessMessage(msg)
