@@ -1,9 +1,7 @@
-package model
+package domain
 
 import (
 	"time"
-
-	"github.com/google/uuid"
 )
 
 // UserRole represents the role of a user
@@ -16,7 +14,7 @@ const (
 
 // User represents a user entity
 type User struct {
-	ID           uuid.UUID `json:"id" db:"id"`
+	Id           int       `json:"id" db:"id"`
 	Username     string    `json:"username" db:"username"`
 	Email        string    `json:"email" db:"email"`
 	PasswordHash string    `json:"-" db:"password_hash"`
@@ -50,7 +48,7 @@ type UserUpdateRequest struct {
 
 // UserResponse represents the output for user data
 type UserResponse struct {
-	ID        uuid.UUID `json:"id"`
+	Id        int       `json:"id"`
 	Username  string    `json:"username"`
 	Email     string    `json:"email"`
 	FirstName string    `json:"first_name"`
