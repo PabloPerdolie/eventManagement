@@ -2,263 +2,233 @@ package event
 
 import (
 	"context"
-	"errors"
-	"fmt"
+	"database/sql"
+	"github.com/PabloPerdolie/event-manager/core-service/internal/domain"
+	"github.com/pkg/errors"
+	"time"
 
 	"github.com/PabloPerdolie/event-manager/core-service/internal/model"
-	"github.com/PabloPerdolie/event-manager/core-service/internal/repository/event"
-	"github.com/PabloPerdolie/event-manager/core-service/internal/repository/user"
-	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
-// ParticipantService provides event participant-related operations
-type ParticipantService interface {
-	Create(ctx context.Context, req model.EventParticipantCreateRequest) (uuid.UUID, error)
-	GetByID(ctx context.Context, id uuid.UUID) (model.EventParticipantResponse, error)
-	Update(ctx context.Context, id uuid.UUID, req model.EventParticipantUpdateRequest) error
-	Delete(ctx context.Context, id uuid.UUID) error
-	ListByEvent(ctx context.Context, eventID uuid.UUID, page, size int) (model.EventParticipantsResponse, error)
-	ListByUser(ctx context.Context, userID uuid.UUID, page, size int) (model.EventParticipantsResponse, error)
-	ConfirmParticipation(ctx context.Context, id uuid.UUID) error
-	DeclineParticipation(ctx context.Context, id uuid.UUID) error
+type ParticipantRepo interface {
+	Create(ctx context.Context, participant model.EventParticipant) (int, error)
+	GetById(ctx context.Context, id int) (model.EventParticipant, error)
+	GetByEventAndUser(ctx context.Context, eventId, userId int) (model.EventParticipant, error)
+	Update(ctx context.Context, participant model.EventParticipant) error
+	Delete(ctx context.Context, id int) error
+	//DeleteByEventAndUser(ctx context.Context, eventId, userId int) error // no usages
+	ListByEvent(ctx context.Context, eventId, limit, offset int) ([]model.EventParticipant, error)
+	ListByUser(ctx context.Context, userId, limit, offset int) ([]model.EventParticipant, error)
 }
 
-type participantService struct {
-	repo     event.ParticipantRepository
-	userRepo user.Repository
+type UserRepo interface {
+	GetUserById(ctx context.Context, id int) (*model.User, error)
+	ListUsers(ctx context.Context, limit, offset int) ([]model.User, int, error)
+}
+
+type Participant struct {
+	repo     ParticipantRepo
+	userRepo UserRepo
 	logger   *zap.SugaredLogger
 }
 
-// NewParticipantService creates a new event participant service
-func NewParticipantService(repo event.ParticipantRepository, userRepo user.Repository, logger *zap.SugaredLogger) ParticipantService {
-	return &participantService{
+func NewParticipantService(repo ParticipantRepo, userRepo UserRepo, logger *zap.SugaredLogger) *Participant {
+	return &Participant{
 		repo:     repo,
 		userRepo: userRepo,
 		logger:   logger,
 	}
 }
 
-// Create creates a new event participant
-func (s *participantService) Create(ctx context.Context, req model.EventParticipantCreateRequest) (uuid.UUID, error) {
-	// Verify that user exists
-	_, err := s.userRepo.GetByID(ctx, req.UserID)
+func (s *Participant) Create(ctx context.Context, eventID int, req domain.EventParticipantCreateRequest) (*domain.EventParticipantResponse, error) {
+	user, err := s.userRepo.GetUserById(ctx, req.UserID)
 	if err != nil {
-		s.logger.Errorw("Failed to get user for participant creation", "error", err, "userId", req.UserID)
-		return uuid.Nil, fmt.Errorf("invalid user: %w", err)
+		s.logger.Errorw("Failed to get user for participant creation", "error", err, "userID", req.UserID)
+		return nil, errors.WithMessage(err, "invalid user")
 	}
 
-	// Check if participant already exists
-	exists, err := s.repo.Exists(ctx, req.EventID, req.UserID)
-	if err != nil {
-		s.logger.Errorw("Failed to check if participant exists", "error", err, "eventId", req.EventID, "userId", req.UserID)
-		return uuid.Nil, fmt.Errorf("failed to check participant: %w", err)
+	_, err = s.repo.GetByEventAndUser(ctx, eventID, req.UserID)
+	if err == nil {
+		return nil, model.ErrUserAlreadyAnParticipant
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		s.logger.Errorw("Failed to check if participant exists", "error", err, "eventID", eventID, "userID", req.UserID)
+		return nil, errors.WithMessage(err, "check participant")
 	}
 
-	if exists {
-		return uuid.Nil, errors.New("user is already a participant of this event")
-	}
-
+	now := time.Now()
 	participant := model.EventParticipant{
-		EventID:     req.EventID,
+		EventID:     eventID,
 		UserID:      req.UserID,
-		IsConfirmed: req.IsConfirmed,
+		Role:        model.RoleParticipant,
+		JoinedAt:    &now,
+		IsConfirmed: ptr(true), // Default to confirmed // todo
 	}
 
 	id, err := s.repo.Create(ctx, participant)
 	if err != nil {
-		s.logger.Errorw("Failed to create participant", "error", err, "eventId", req.EventID, "userId", req.UserID)
-		return uuid.Nil, fmt.Errorf("failed to create participant: %w", err)
+		s.logger.Errorw("Failed to create participant", "error", err, "eventID", eventID, "userID", req.UserID)
+		return nil, errors.WithMessage(err, "failed to create participant")
 	}
 
-	return id, nil
+	return &domain.EventParticipantResponse{
+		Id:          id,
+		EventID:     eventID,
+		User:        userToResponse(user),
+		Role:        string(participant.Role),
+		JoinedAt:    participant.JoinedAt,
+		IsConfirmed: participant.IsConfirmed,
+	}, nil
 }
 
-// GetByID retrieves an event participant by ID
-func (s *participantService) GetByID(ctx context.Context, id uuid.UUID) (model.EventParticipantResponse, error) {
-	participant, err := s.repo.GetByID(ctx, id)
+func (s *Participant) GetById(ctx context.Context, id int) (*domain.EventParticipantResponse, error) {
+	participant, err := s.repo.GetById(ctx, id)
 	if err != nil {
 		s.logger.Errorw("Failed to get participant by ID", "error", err, "id", id)
-		return model.EventParticipantResponse{}, fmt.Errorf("failed to get participant: %w", err)
+		return nil, errors.WithMessage(err, "get participant")
 	}
 
-	// Get user info
-	user, err := s.userRepo.GetByID(ctx, participant.UserID)
+	user, err := s.userRepo.GetUserById(ctx, participant.UserID)
 	if err != nil {
-		s.logger.Warnw("Failed to get participant user details", "error", err, "userId", participant.UserID)
-		// Continue even if we can't get user details
+		s.logger.Warnw("Failed to get participant user details", "error", err, "userID", participant.UserID)
+		user = &model.User{UserId: participant.UserID}
 	}
 
-	return model.EventParticipantResponse{
-		ID:          participant.ID,
+	return &domain.EventParticipantResponse{
+		Id:          participant.EventParticipantID,
 		EventID:     participant.EventID,
-		UserID:      participant.UserID,
-		Username:    user.Username,
-		FullName:    fmt.Sprintf("%s %s", user.FirstName, user.LastName),
-		IsConfirmed: participant.IsConfirmed,
+		User:        userToResponse(user),
+		Role:        string(participant.Role),
 		JoinedAt:    participant.JoinedAt,
+		IsConfirmed: participant.IsConfirmed,
 	}, nil
 }
 
-// Update updates an event participant
-func (s *participantService) Update(ctx context.Context, id uuid.UUID, req model.EventParticipantUpdateRequest) error {
-	participant, err := s.repo.GetByID(ctx, id)
-	if err != nil {
-		s.logger.Errorw("Failed to get participant for update", "error", err, "id", id)
-		return fmt.Errorf("failed to get participant: %w", err)
-	}
-
-	// Update fields if provided
-	if req.IsConfirmed != nil {
-		participant.IsConfirmed = *req.IsConfirmed
-	}
-
-	if err := s.repo.Update(ctx, participant); err != nil {
-		s.logger.Errorw("Failed to update participant", "error", err, "id", id)
-		return fmt.Errorf("failed to update participant: %w", err)
-	}
-
-	return nil
-}
-
-// Delete deletes an event participant
-func (s *participantService) Delete(ctx context.Context, id uuid.UUID) error {
+func (s *Participant) Delete(ctx context.Context, id int) error {
 	if err := s.repo.Delete(ctx, id); err != nil {
 		s.logger.Errorw("Failed to delete participant", "error", err, "id", id)
-		return fmt.Errorf("failed to delete participant: %w", err)
+		return errors.WithMessage(err, "failed to delete participant")
 	}
 
 	return nil
 }
 
-// ListByEvent retrieves a list of participants for a specific event with pagination
-func (s *participantService) ListByEvent(ctx context.Context, eventID uuid.UUID, page, size int) (model.EventParticipantsResponse, error) {
-	// Set default pagination values if not provided
+func (s *Participant) ListByEvent(ctx context.Context, eventID int, page, size int) (*domain.EventParticipantsResponse, error) {
 	if page < 1 {
 		page = 1
 	}
 	if size < 1 {
 		size = 10
 	}
-
 	offset := (page - 1) * size
-	participants, total, err := s.repo.ListByEvent(ctx, eventID, size, offset)
+
+	participants, err := s.repo.ListByEvent(ctx, eventID, size, offset)
 	if err != nil {
-		s.logger.Errorw("Failed to list event participants", "error", err, "eventId", eventID, "page", page, "size", size)
-		return model.EventParticipantsResponse{}, fmt.Errorf("failed to list participants: %w", err)
+		s.logger.Errorw("Failed to list event participants", "error", err, "eventID", eventID, "page", page, "size", size)
+		return nil, errors.WithMessage(err, "list participants")
 	}
 
-	// Convert to response objects
-	participantResponses := make([]model.EventParticipantResponse, len(participants))
+	participantResponses := make([]domain.EventParticipantResponse, len(participants))
 	for i, participant := range participants {
-		// Get user info
-		user, err := s.userRepo.GetByID(ctx, participant.UserID)
+		user, err := s.userRepo.GetUserById(ctx, participant.UserID)
 		if err != nil {
-			s.logger.Warnw("Failed to get participant user details", "error", err, "userId", participant.UserID)
-			// Continue with minimal user info if we can't get full details
-			participantResponses[i] = model.EventParticipantResponse{
-				ID:          participant.ID,
-				EventID:     participant.EventID,
-				UserID:      participant.UserID,
-				IsConfirmed: participant.IsConfirmed,
-				JoinedAt:    participant.JoinedAt,
-			}
-			continue
+			s.logger.Warnw("Failed to get participant user details", "error", err, "userID", participant.UserID)
+			user = &model.User{UserId: participant.UserID}
 		}
-
-		participantResponses[i] = model.EventParticipantResponse{
-			ID:          participant.ID,
+		participantResponses[i] = domain.EventParticipantResponse{
+			Id:          participant.EventParticipantID,
 			EventID:     participant.EventID,
-			UserID:      participant.UserID,
-			Username:    user.Username,
-			FullName:    fmt.Sprintf("%s %s", user.FirstName, user.LastName),
-			IsConfirmed: participant.IsConfirmed,
+			User:        userToResponse(user),
+			Role:        string(participant.Role),
 			JoinedAt:    participant.JoinedAt,
+			IsConfirmed: participant.IsConfirmed,
 		}
 	}
 
-	return model.EventParticipantsResponse{
+	return &domain.EventParticipantsResponse{
 		Participants: participantResponses,
-		Total:        total,
+		Total:        len(participants),
 	}, nil
 }
 
-// ListByUser retrieves a list of event participations for a specific user with pagination
-func (s *participantService) ListByUser(ctx context.Context, userID uuid.UUID, page, size int) (model.EventParticipantsResponse, error) {
-	// Set default pagination values if not provided
+func (s *Participant) ListByUser(ctx context.Context, userId int, page, size int) (*domain.EventParticipantsResponse, error) {
 	if page < 1 {
 		page = 1
 	}
 	if size < 1 {
 		size = 10
 	}
-
 	offset := (page - 1) * size
-	participants, total, err := s.repo.ListByUser(ctx, userID, size, offset)
+
+	participants, err := s.repo.ListByUser(ctx, userId, size, offset)
 	if err != nil {
-		s.logger.Errorw("Failed to list user participations", "error", err, "userId", userID, "page", page, "size", size)
-		return model.EventParticipantsResponse{}, fmt.Errorf("failed to list participations: %w", err)
+		s.logger.Errorw("Failed to list user participations", "error", err, "userId", userId, "page", page, "size", size)
+		return nil, errors.WithMessage(err, "list participations")
 	}
 
-	// Get user info
-	user, err := s.userRepo.GetByID(ctx, userID)
-	if err != nil {
-		s.logger.Warnw("Failed to get user details for participations", "error", err, "userId", userID)
-		// Continue with minimal info
-	}
-
-	// Convert to response objects
-	participantResponses := make([]model.EventParticipantResponse, len(participants))
+	participantResponses := make([]domain.EventParticipantResponse, len(participants))
 	for i, participant := range participants {
-		participantResponses[i] = model.EventParticipantResponse{
-			ID:          participant.ID,
+		participantResponses[i] = domain.EventParticipantResponse{
+			Id:          participant.EventParticipantID,
 			EventID:     participant.EventID,
-			UserID:      participant.UserID,
-			Username:    user.Username,
-			FullName:    fmt.Sprintf("%s %s", user.FirstName, user.LastName),
-			IsConfirmed: participant.IsConfirmed,
+			Role:        string(participant.Role),
 			JoinedAt:    participant.JoinedAt,
+			IsConfirmed: participant.IsConfirmed,
 		}
 	}
 
-	return model.EventParticipantsResponse{
+	return &domain.EventParticipantsResponse{
 		Participants: participantResponses,
-		Total:        total,
+		Total:        len(participants),
 	}, nil
 }
 
-// ConfirmParticipation confirms a user's participation in an event
-func (s *participantService) ConfirmParticipation(ctx context.Context, id uuid.UUID) error {
-	participant, err := s.repo.GetByID(ctx, id)
+func (s *Participant) ConfirmParticipation(ctx context.Context, id int) error {
+	participant, err := s.repo.GetById(ctx, id)
 	if err != nil {
 		s.logger.Errorw("Failed to get participant for confirmation", "error", err, "id", id)
-		return fmt.Errorf("failed to get participant: %w", err)
+		return errors.WithMessage(err, "get participant")
 	}
 
-	participant.IsConfirmed = true
+	participant.IsConfirmed = ptr(true)
 
 	if err := s.repo.Update(ctx, participant); err != nil {
 		s.logger.Errorw("Failed to confirm participation", "error", err, "id", id)
-		return fmt.Errorf("failed to confirm participation: %w", err)
+		return errors.WithMessage(err, "confirm participation")
 	}
 
 	return nil
 }
 
-// DeclineParticipation declines a user's participation in an event
-func (s *participantService) DeclineParticipation(ctx context.Context, id uuid.UUID) error {
-	participant, err := s.repo.GetByID(ctx, id)
+func (s *Participant) DeclineParticipation(ctx context.Context, id int) error {
+	participant, err := s.repo.GetById(ctx, id)
 	if err != nil {
 		s.logger.Errorw("Failed to get participant for declining", "error", err, "id", id)
-		return fmt.Errorf("failed to get participant: %w", err)
+		return errors.WithMessage(err, "failed to get participant")
 	}
 
-	participant.IsConfirmed = false
+	participant.IsConfirmed = ptr(false)
 
 	if err := s.repo.Update(ctx, participant); err != nil {
 		s.logger.Errorw("Failed to decline participation", "error", err, "id", id)
-		return fmt.Errorf("failed to decline participation: %w", err)
+		return errors.WithMessage(err, "failed to decline participation")
 	}
 
 	return nil
+}
+
+func userToResponse(user *model.User) domain.UserResponse {
+	return domain.UserResponse{
+		Id:        user.UserId,
+		Username:  user.Username,
+		Email:     user.Email,
+		CreatedAt: user.CreatedAt,
+		IsActive:  user.IsActive,
+		//Role: user.Role, // todo
+	}
+}
+
+func ptr(b bool) *bool {
+	return &b
 }

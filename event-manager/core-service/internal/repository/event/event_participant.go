@@ -95,36 +95,24 @@ func (r *Participant) DeleteByEventAndUser(ctx context.Context, eventId, userId 
 	return nil
 }
 
-func (r *Participant) ListByEvent(ctx context.Context, eventId int, limit, offset int) ([]model.EventParticipant, int, error) {
+func (r *Participant) ListByEvent(ctx context.Context, eventId, limit, offset int) ([]model.EventParticipant, error) {
 	var participants []model.EventParticipant
-	var total int
-
-	countQuery := `SELECT COUNT(*) FROM event_participant WHERE event_id = $1`
-	if err := r.db.GetContext(ctx, &total, countQuery, eventId); err != nil {
-		return nil, 0, errors.WithMessage(err, "count event participants")
-	}
 
 	query := `SELECT * FROM event_participant WHERE event_id = $1 ORDER BY joined_at DESC LIMIT $2 OFFSET $3`
 	if err := r.db.SelectContext(ctx, &participants, query, eventId, limit, offset); err != nil {
-		return nil, 0, errors.WithMessage(err, "list event participants")
+		return nil, errors.WithMessage(err, "list event participants")
 	}
 
-	return participants, total, nil
+	return participants, nil
 }
 
-func (r *Participant) ListByUser(ctx context.Context, userId int, limit, offset int) ([]model.EventParticipant, int, error) {
+func (r *Participant) ListByUser(ctx context.Context, userId, limit, offset int) ([]model.EventParticipant, error) {
 	var participants []model.EventParticipant
-	var total int
-
-	countQuery := `SELECT COUNT(*) FROM event_participant WHERE user_id = $1`
-	if err := r.db.GetContext(ctx, &total, countQuery, userId); err != nil {
-		return nil, 0, errors.WithMessage(err, "count user events")
-	}
 
 	query := `SELECT * FROM event_participant WHERE user_id = $1 ORDER BY joined_at DESC LIMIT $2 OFFSET $3`
 	if err := r.db.SelectContext(ctx, &participants, query, userId, limit, offset); err != nil {
-		return nil, 0, errors.WithMessage(err, "list user events")
+		return nil, errors.WithMessage(err, "list user events")
 	}
 
-	return participants, total, nil
+	return participants, nil
 }

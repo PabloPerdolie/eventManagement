@@ -2,107 +2,101 @@ package event
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"time"
-
+	"github.com/PabloPerdolie/event-manager/core-service/internal/domain"
 	"github.com/PabloPerdolie/event-manager/core-service/internal/model"
-	"github.com/PabloPerdolie/event-manager/core-service/internal/repository/event"
-	"github.com/google/uuid"
+	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )
 
-// Service provides event-related operations
-type Service interface {
-	Create(ctx context.Context, userID uuid.UUID, req model.EventCreateRequest) (uuid.UUID, error)
-	GetByID(ctx context.Context, id uuid.UUID) (model.EventResponse, error)
-	Update(ctx context.Context, id uuid.UUID, req model.EventUpdateRequest) error
-	Delete(ctx context.Context, id uuid.UUID) error
-	List(ctx context.Context, page, size int) (model.EventsResponse, error)
-	ListByOrganizer(ctx context.Context, organizerID uuid.UUID, page, size int) (model.EventsResponse, error)
-	ListByParticipant(ctx context.Context, participantID uuid.UUID, page, size int) (model.EventsResponse, error)
+type EventRepo interface {
+	Create(ctx context.Context, event model.Event) (int, error)
+	GetById(ctx context.Context, eventID int) (model.Event, error)
+	Update(ctx context.Context, event model.Event) error
+	Delete(ctx context.Context, eventID int) error
+	List(ctx context.Context, limit, offset int) ([]model.Event, error)
+	ListByOrganizer(ctx context.Context, organizerID, limit, offset int) ([]model.Event, error)
+	ListByParticipant(ctx context.Context, participantID, limit, offset int) ([]model.Event, error)
 }
 
-type service struct {
-	eventRepo       event.Repository
-	participantRepo event.ParticipantRepository
+type EventParticipantRepo interface {
+	Create(ctx context.Context, participant model.EventParticipant) (int, error)
+}
+
+type Service struct {
+	eventRepo       EventRepo
+	participantRepo EventParticipantRepo
 	logger          *zap.SugaredLogger
 }
 
-// NewService creates a new event service
-func NewService(eventRepo event.Repository, participantRepo event.ParticipantRepository, logger *zap.SugaredLogger) Service {
-	return &service{
+func NewService(eventRepo EventRepo, participantRepo EventParticipantRepo, logger *zap.SugaredLogger) Service {
+	return Service{
 		eventRepo:       eventRepo,
 		participantRepo: participantRepo,
 		logger:          logger,
 	}
 }
 
-// Create creates a new event
-func (s *service) Create(ctx context.Context, userID uuid.UUID, req model.EventCreateRequest) (uuid.UUID, error) {
+func (s *Service) Create(ctx context.Context, userId int, req domain.EventCreateRequest) (int, error) {
 	event := model.Event{
-		Name:        req.Name,
+		Title:       req.Title,
 		Description: req.Description,
 		StartDate:   req.StartDate,
 		EndDate:     req.EndDate,
-		Location:    req.Location,
-		CreatedBy:   userID,
+		Location:    &req.Location,
+		OrganizerID: userId,
 	}
 
 	id, err := s.eventRepo.Create(ctx, event)
 	if err != nil {
-		s.logger.Errorw("Failed to create event", "error", err, "userId", userID)
-		return uuid.Nil, fmt.Errorf("failed to create event: %w", err)
+		s.logger.Errorw("Failed to create event", "error", err, "userId", userId)
+		return 0, errors.WithMessage(err, "create event")
 	}
 
-	// Automatically add event creator as a participant
 	participant := model.EventParticipant{
 		EventID:     id,
-		UserID:      userID,
-		IsConfirmed: true,
+		UserID:      userId,
+		IsConfirmed: ptr(true),
+		Role:        model.RoleOrganizer,
 	}
 
 	_, err = s.participantRepo.Create(ctx, participant)
 	if err != nil {
-		s.logger.Errorw("Failed to add creator as participant", "error", err, "eventId", id, "userId", userID)
-		// We don't return an error here, as the event was already created successfully
+		s.logger.Errorw("Failed to add creator as participant", "error", err, "eventId", id, "userId", userId)
+		// We don't return an error here, as the event was already created successfully // todo
 	}
 
 	return id, nil
 }
 
-// GetByID retrieves an event by ID
-func (s *service) GetByID(ctx context.Context, id uuid.UUID) (model.EventResponse, error) {
-	event, err := s.eventRepo.GetByID(ctx, id)
+func (s *Service) GetById(ctx context.Context, id int) (*domain.EventResponse, error) {
+	event, err := s.eventRepo.GetById(ctx, id)
 	if err != nil {
-		s.logger.Errorw("Failed to get event by ID", "error", err, "id", id)
-		return model.EventResponse{}, fmt.Errorf("failed to get event: %w", err)
+		s.logger.Errorw("Failed to get event by Id", "error", err, "id", id)
+		return nil, errors.WithMessage(err, "get event")
 	}
 
-	return model.EventResponse{
-		ID:          event.ID,
-		Name:        event.Name,
+	return &domain.EventResponse{
+		Id:          event.EventId,
+		Title:       event.Title,
 		Description: event.Description,
 		StartDate:   event.StartDate,
 		EndDate:     event.EndDate,
-		Location:    event.Location,
-		CreatedBy:   event.CreatedBy,
+		Location:    *event.Location,
+		CreatedBy:   event.OrganizerID,
 		CreatedAt:   event.CreatedAt,
-		UpdatedAt:   event.UpdatedAt,
 	}, nil
 }
 
-// Update updates an event
-func (s *service) Update(ctx context.Context, id uuid.UUID, req model.EventUpdateRequest) error {
-	event, err := s.eventRepo.GetByID(ctx, id)
+func (s *Service) Update(ctx context.Context, id int, req domain.EventUpdateRequest) error {
+	event, err := s.eventRepo.GetById(ctx, id)
 	if err != nil {
 		s.logger.Errorw("Failed to get event for update", "error", err, "id", id)
-		return fmt.Errorf("failed to get event: %w", err)
+		return errors.WithMessage(err, "get event")
 	}
 
-	// Update fields if provided
-	if req.Name != nil {
-		event.Name = *req.Name
+	if req.Title != nil {
+		event.Title = *req.Title
 	}
 
 	if req.Description != nil {
@@ -114,41 +108,37 @@ func (s *service) Update(ctx context.Context, id uuid.UUID, req model.EventUpdat
 	}
 
 	if req.EndDate != nil {
-		event.EndDate = req.EndDate
+		event.EndDate = *req.EndDate
 	}
 
 	if req.Location != nil {
-		event.Location = *req.Location
+		event.Location = req.Location
 	}
 
 	if err := s.eventRepo.Update(ctx, event); err != nil {
 		s.logger.Errorw("Failed to update event", "error", err, "id", id)
-		return fmt.Errorf("failed to update event: %w", err)
+		return errors.WithMessage(err, "update event")
 	}
 
 	return nil
 }
 
-// Delete deletes an event
-func (s *service) Delete(ctx context.Context, id uuid.UUID) error {
-	// First check if the event exists
-	_, err := s.eventRepo.GetByID(ctx, id)
+func (s *Service) Delete(ctx context.Context, id int) error {
+	_, err := s.eventRepo.GetById(ctx, id)
 	if err != nil {
 		s.logger.Errorw("Failed to get event for deletion", "error", err, "id", id)
-		return fmt.Errorf("failed to get event: %w", err)
+		return errors.WithMessage(err, "get event")
 	}
 
 	if err := s.eventRepo.Delete(ctx, id); err != nil {
 		s.logger.Errorw("Failed to delete event", "error", err, "id", id)
-		return fmt.Errorf("failed to delete event: %w", err)
+		return errors.WithMessage(err, "delete event")
 	}
 
 	return nil
 }
 
-// List retrieves a list of events with pagination
-func (s *service) List(ctx context.Context, page, size int) (model.EventsResponse, error) {
-	// Set default pagination values if not provided
+func (s *Service) List(ctx context.Context, page, size int) (*domain.EventsResponse, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -157,37 +147,16 @@ func (s *service) List(ctx context.Context, page, size int) (model.EventsRespons
 	}
 
 	offset := (page - 1) * size
-	events, total, err := s.eventRepo.List(ctx, size, offset)
+	events, err := s.eventRepo.List(ctx, size, offset)
 	if err != nil {
 		s.logger.Errorw("Failed to list events", "error", err, "page", page, "size", size)
-		return model.EventsResponse{}, fmt.Errorf("failed to list events: %w", err)
+		return nil, fmt.Errorf("failed to list events: %w", err)
 	}
 
-	// Convert to response objects
-	eventResponses := make([]model.EventResponse, len(events))
-	for i, event := range events {
-		eventResponses[i] = model.EventResponse{
-			ID:          event.ID,
-			Name:        event.Name,
-			Description: event.Description,
-			StartDate:   event.StartDate,
-			EndDate:     event.EndDate,
-			Location:    event.Location,
-			CreatedBy:   event.CreatedBy,
-			CreatedAt:   event.CreatedAt,
-			UpdatedAt:   event.UpdatedAt,
-		}
-	}
-
-	return model.EventsResponse{
-		Events: eventResponses,
-		Total:  total,
-	}, nil
+	return convertToEventsResponse(events), nil
 }
 
-// ListByOrganizer retrieves a list of events for a specific organizer with pagination
-func (s *service) ListByOrganizer(ctx context.Context, organizerID uuid.UUID, page, size int) (model.EventsResponse, error) {
-	// Set default pagination values if not provided
+func (s *Service) ListByOrganizer(ctx context.Context, organizerId int, page, size int) (*domain.EventsResponse, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -196,37 +165,16 @@ func (s *service) ListByOrganizer(ctx context.Context, organizerID uuid.UUID, pa
 	}
 
 	offset := (page - 1) * size
-	events, total, err := s.eventRepo.ListByOrganizer(ctx, organizerID, size, offset)
+	events, err := s.eventRepo.ListByOrganizer(ctx, organizerId, size, offset)
 	if err != nil {
-		s.logger.Errorw("Failed to list organizer events", "error", err, "organizerId", organizerID, "page", page, "size", size)
-		return model.EventsResponse{}, fmt.Errorf("failed to list organizer events: %w", err)
+		s.logger.Errorw("Failed to list organizer events", "error", err, "organizerId", organizerId, "page", page, "size", size)
+		return nil, fmt.Errorf("failed to list organizer events: %w", err)
 	}
 
-	// Convert to response objects
-	eventResponses := make([]model.EventResponse, len(events))
-	for i, event := range events {
-		eventResponses[i] = model.EventResponse{
-			ID:          event.ID,
-			Name:        event.Name,
-			Description: event.Description,
-			StartDate:   event.StartDate,
-			EndDate:     event.EndDate,
-			Location:    event.Location,
-			CreatedBy:   event.CreatedBy,
-			CreatedAt:   event.CreatedAt,
-			UpdatedAt:   event.UpdatedAt,
-		}
-	}
-
-	return model.EventsResponse{
-		Events: eventResponses,
-		Total:  total,
-	}, nil
+	return convertToEventsResponse(events), nil
 }
 
-// ListByParticipant retrieves a list of events for a specific participant with pagination
-func (s *service) ListByParticipant(ctx context.Context, participantID uuid.UUID, page, size int) (model.EventsResponse, error) {
-	// Set default pagination values if not provided
+func (s *Service) ListByParticipant(ctx context.Context, participantId int, page, size int) (*domain.EventsResponse, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -235,30 +183,33 @@ func (s *service) ListByParticipant(ctx context.Context, participantID uuid.UUID
 	}
 
 	offset := (page - 1) * size
-	events, total, err := s.eventRepo.ListByParticipant(ctx, participantID, size, offset)
+	events, err := s.eventRepo.ListByParticipant(ctx, participantId, size, offset)
 	if err != nil {
-		s.logger.Errorw("Failed to list participant events", "error", err, "participantId", participantID, "page", page, "size", size)
-		return model.EventsResponse{}, fmt.Errorf("failed to list participant events: %w", err)
+		s.logger.Errorw("Failed to list participant events", "error", err, "participantId", participantId, "page", page, "size", size)
+		return nil, fmt.Errorf("failed to list participant events: %w", err)
 	}
 
-	// Convert to response objects
-	eventResponses := make([]model.EventResponse, len(events))
+	return convertToEventsResponse(events), nil
+}
+
+func convertToEventsResponse(events []model.Event) *domain.EventsResponse {
+	eventResponses := make([]domain.EventResponse, len(events))
+
 	for i, event := range events {
-		eventResponses[i] = model.EventResponse{
-			ID:          event.ID,
-			Name:        event.Name,
+		eventResponses[i] = domain.EventResponse{
+			Id:          event.EventId,
+			Title:       event.Title,
 			Description: event.Description,
 			StartDate:   event.StartDate,
 			EndDate:     event.EndDate,
-			Location:    event.Location,
-			CreatedBy:   event.CreatedBy,
+			Location:    *event.Location,
+			CreatedBy:   event.OrganizerID,
 			CreatedAt:   event.CreatedAt,
-			UpdatedAt:   event.UpdatedAt,
 		}
 	}
 
-	return model.EventsResponse{
+	return &domain.EventsResponse{
 		Events: eventResponses,
-		Total:  total,
-	}, nil
+		Total:  len(events),
+	}
 }

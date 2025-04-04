@@ -85,7 +85,7 @@ func (r *Event) Update(ctx context.Context, event model.Event) error {
 		event.EndDate,
 		event.Location,
 		event.Status,
-		event.EventID,
+		event.EventId,
 	)
 	if err != nil {
 		return errors.WithMessage(err, "update event")
@@ -105,15 +105,8 @@ func (r *Event) Delete(ctx context.Context, eventID int) error {
 	return nil
 }
 
-func (r *Event) List(ctx context.Context, limit, offset int) ([]model.Event, int, error) {
+func (r *Event) List(ctx context.Context, limit, offset int) ([]model.Event, error) {
 	var events []model.Event
-	var total int
-
-	countQuery := `SELECT COUNT(*) FROM events`
-	err := r.db.GetContext(ctx, &total, countQuery)
-	if err != nil {
-		return nil, 0, errors.WithMessage(err, "count events")
-	}
 
 	query := `
 		SELECT event_id, organizer_id, title, description, start_date, end_date, location, status, created_at
@@ -122,23 +115,16 @@ func (r *Event) List(ctx context.Context, limit, offset int) ([]model.Event, int
 		LIMIT $1 OFFSET $2
 	`
 
-	err = r.db.SelectContext(ctx, &events, query, limit, offset)
+	err := r.db.SelectContext(ctx, &events, query, limit, offset)
 	if err != nil {
-		return nil, 0, errors.WithMessage(err, "list events")
+		return nil, errors.WithMessage(err, "list events")
 	}
 
-	return events, total, nil
+	return events, nil
 }
 
-func (r *Event) ListByOrganizer(ctx context.Context, organizerID, limit, offset int) ([]model.Event, int, error) {
+func (r *Event) ListByOrganizer(ctx context.Context, organizerID, limit, offset int) ([]model.Event, error) {
 	var events []model.Event
-	var total int
-
-	countQuery := `SELECT COUNT(*) FROM events WHERE organizer_id = $1`
-	err := r.db.GetContext(ctx, &total, countQuery, organizerID)
-	if err != nil {
-		return nil, 0, errors.WithMessage(err, "count organizer events")
-	}
 
 	query := `
 		SELECT event_id, organizer_id, title, description, start_date, end_date, location, status, created_at
@@ -148,28 +134,16 @@ func (r *Event) ListByOrganizer(ctx context.Context, organizerID, limit, offset 
 		LIMIT $2 OFFSET $3
 	`
 
-	err = r.db.SelectContext(ctx, &events, query, organizerID, limit, offset)
+	err := r.db.SelectContext(ctx, &events, query, organizerID, limit, offset)
 	if err != nil {
-		return nil, 0, errors.WithMessage(err, "list organizer events")
+		return nil, errors.WithMessage(err, "list organizer events")
 	}
 
-	return events, total, nil
+	return events, nil
 }
 
-func (r *Event) ListByParticipant(ctx context.Context, participantID, limit, offset int) ([]model.Event, int, error) {
+func (r *Event) ListByParticipant(ctx context.Context, participantID, limit, offset int) ([]model.Event, error) {
 	var events []model.Event
-	var total int
-
-	countQuery := `
-		SELECT COUNT(*)
-		FROM events e
-		JOIN event_participants ep ON e.event_id = ep.event_id
-		WHERE ep.user_id = $1
-	`
-	err := r.db.GetContext(ctx, &total, countQuery, participantID)
-	if err != nil {
-		return nil, 0, errors.WithMessage(err, "count participant events")
-	}
 
 	query := `
 		SELECT e.event_id, e.organizer_id, e.title, e.description, e.start_date, e.end_date, e.location, e.status, e.created_at
@@ -180,10 +154,10 @@ func (r *Event) ListByParticipant(ctx context.Context, participantID, limit, off
 		LIMIT $2 OFFSET $3
 	`
 
-	err = r.db.SelectContext(ctx, &events, query, participantID, limit, offset)
+	err := r.db.SelectContext(ctx, &events, query, participantID, limit, offset)
 	if err != nil {
-		return nil, 0, errors.WithMessage(err, "list participant events")
+		return nil, errors.WithMessage(err, "list participant events")
 	}
 
-	return events, total, nil
+	return events, nil
 }
