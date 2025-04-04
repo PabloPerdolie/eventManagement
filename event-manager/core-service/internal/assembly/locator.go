@@ -6,36 +6,31 @@ import (
 	"github.com/PabloPerdolie/event-manager/core-service/internal/routes"
 	"github.com/PabloPerdolie/event-manager/core-service/internal/service"
 	"github.com/PabloPerdolie/event-manager/core-service/internal/storage"
+	"github.com/PabloPerdolie/event-manager/core-service/pkg/postgres"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
+	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )
 
-// ServiceLocator содержит ссылки на все компоненты приложения
 type ServiceLocator struct {
 	Controllers routes.Controllers
 	DB          *sqlx.DB
 	logger      *zap.SugaredLogger
 }
 
-// NewLocator создает и инициализирует новый ServiceLocator
 func NewLocator(cfg *config.Config, logger *zap.SugaredLogger) (*ServiceLocator, error) {
-	// Инициализация базы данных
-	db, err := storage.InitDB(cfg, logger)
+	db, err := postgres.InitDB(cfg.Database., logger)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithMessage(err, "init db")
 	}
 
-	// Инициализация репозиториев
 	//repositories := repository.New(db)
 
-	// Инициализация сервисов
 	healthService := service.NewHealthService(db, logger)
 
-	// Инициализация контроллеров
 	healthCtrl := handler.NewHealthController(healthService, logger)
 
-	// Формирование структуры контроллеров для маршрутизации
 	controllers := routes.Controllers{
 		HealthCtrl: healthCtrl,
 		//UserCtrl:             userCtrl,
@@ -54,7 +49,6 @@ func NewLocator(cfg *config.Config, logger *zap.SugaredLogger) (*ServiceLocator,
 	}, nil
 }
 
-// Close освобождает ресурсы при завершении работы приложения
 func (l *ServiceLocator) Close() {
 	l.logger.Info("Cleaning up resources...")
 	if l.DB != nil {

@@ -64,7 +64,7 @@ func LoadConfig() (*Config, error) {
 	dbName := getEnv("DB_NAME", "event_manager")
 	dbSSLMode := getEnv("DB_SSLMODE", "disable")
 	dbMaxOpenConns, _ := strconv.Atoi(getEnv("DB_MAX_OPEN_CONNS", "20"))
-	dbMaxIdleConns, _ := strconv.Atoi(getEnv("DB_MAX_IDLE_CONNS", "5"))
+	dbMaxIdleConns, _ := strconv.Atoi(getEnv("DB_MAX_IdLE_CONNS", "5"))
 	dbConnMaxLifetime, _ := strconv.Atoi(getEnv("DB_CONN_MAX_LIFETIME", "300"))
 
 	// Настройки JWT

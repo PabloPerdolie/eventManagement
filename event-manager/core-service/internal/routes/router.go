@@ -12,22 +12,12 @@ func SetupRoutes(router *gin.Engine, controllers *Controllers) {
 		// Маршрут проверки здоровья сервиса
 		api.GET("/health", controllers.HealthCtrl.Check)
 
-		// Маршруты пользователей
-		users := api.Group("/users")
-		{
-			users.GET("", controllers.UserCtrl.List)
-			users.POST("", controllers.UserCtrl.Create)
-			users.GET("/:id", controllers.UserCtrl.GetByID)
-			users.PUT("/:id", controllers.UserCtrl.Update)
-			users.DELETE("/:id", controllers.UserCtrl.Delete)
-		}
-
 		// Маршруты событий
 		events := api.Group("/events")
 		{
 			events.GET("", controllers.EventCtrl.List)
 			events.POST("", controllers.EventCtrl.Create)
-			events.GET("/:id", controllers.EventCtrl.GetByID)
+			events.GET("/:id", controllers.EventCtrl.GetById)
 			events.PUT("/:id", controllers.EventCtrl.Update)
 			events.DELETE("/:id", controllers.EventCtrl.Delete)
 
@@ -36,7 +26,7 @@ func SetupRoutes(router *gin.Engine, controllers *Controllers) {
 			{
 				participants.GET("", controllers.EventParticipantCtrl.ListByEvent)
 				participants.POST("", controllers.EventParticipantCtrl.Create)
-				participants.GET("/:user_id", controllers.EventParticipantCtrl.GetByID)
+				participants.GET("/:user_id", controllers.EventParticipantCtrl.GetById)
 				participants.PUT("/:user_id", controllers.EventParticipantCtrl.Update)
 				participants.DELETE("/:user_id", controllers.EventParticipantCtrl.Delete)
 			}
@@ -47,7 +37,7 @@ func SetupRoutes(router *gin.Engine, controllers *Controllers) {
 		{
 			tasks.GET("", controllers.TaskCtrl.List)
 			tasks.POST("", controllers.TaskCtrl.Create)
-			tasks.GET("/:id", controllers.TaskCtrl.GetByID)
+			tasks.GET("/:id", controllers.TaskCtrl.GetById)
 			tasks.PUT("/:id", controllers.TaskCtrl.Update)
 			tasks.DELETE("/:id", controllers.TaskCtrl.Delete)
 
@@ -56,7 +46,7 @@ func SetupRoutes(router *gin.Engine, controllers *Controllers) {
 			{
 				assignments.GET("", controllers.TaskAssignmentCtrl.ListByTask)
 				assignments.POST("", controllers.TaskAssignmentCtrl.Create)
-				assignments.GET("/:assignment_id", controllers.TaskAssignmentCtrl.GetByID)
+				assignments.GET("/:assignment_id", controllers.TaskAssignmentCtrl.GetById)
 				assignments.PUT("/:assignment_id", controllers.TaskAssignmentCtrl.Update)
 				assignments.DELETE("/:assignment_id", controllers.TaskAssignmentCtrl.Delete)
 			}
@@ -67,7 +57,7 @@ func SetupRoutes(router *gin.Engine, controllers *Controllers) {
 		{
 			expenses.GET("", controllers.ExpenseCtrl.List)
 			expenses.POST("", controllers.ExpenseCtrl.Create)
-			expenses.GET("/:id", controllers.ExpenseCtrl.GetByID)
+			expenses.GET("/:id", controllers.ExpenseCtrl.GetById)
 			expenses.PUT("/:id", controllers.ExpenseCtrl.Update)
 			expenses.DELETE("/:id", controllers.ExpenseCtrl.Delete)
 
@@ -76,7 +66,7 @@ func SetupRoutes(router *gin.Engine, controllers *Controllers) {
 			{
 				shares.GET("", controllers.ExpenseShareCtrl.ListByExpense)
 				shares.POST("", controllers.ExpenseShareCtrl.Create)
-				shares.GET("/:share_id", controllers.ExpenseShareCtrl.GetByID)
+				shares.GET("/:share_id", controllers.ExpenseShareCtrl.GetById)
 				shares.PUT("/:share_id", controllers.ExpenseShareCtrl.Update)
 				shares.DELETE("/:share_id", controllers.ExpenseShareCtrl.Delete)
 			}

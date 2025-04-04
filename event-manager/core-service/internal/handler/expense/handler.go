@@ -14,7 +14,7 @@ import (
 // Handler handles expense-related HTTP requests
 type Handler interface {
 	Create(c *gin.Context)
-	GetByID(c *gin.Context)
+	GetById(c *gin.Context)
 	Update(c *gin.Context)
 	Delete(c *gin.Context)
 	List(c *gin.Context)
@@ -43,8 +43,8 @@ func (h *handler) Create(c *gin.Context) {
 	}
 
 	// Validate request
-	if req.Description == "" || req.Amount <= 0 || req.EventID == uuid.Nil || req.CreatedBy == uuid.Nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "description, amount, event ID, and created by are required"})
+	if req.Description == "" || req.Amount <= 0 || req.EventId == uuid.Nil || req.CreatedBy == uuid.Nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "description, amount, event Id, and created by are required"})
 		return
 	}
 
@@ -58,17 +58,17 @@ func (h *handler) Create(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"id": id})
 }
 
-// GetByID handles getting an expense by ID
-func (h *handler) GetByID(c *gin.Context) {
+// GetById handles getting an expense by Id
+func (h *handler) GetById(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
-		h.logger.Errorw("Invalid expense ID", "error", err, "id", idStr)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid expense ID"})
+		h.logger.Errorw("Invalid expense Id", "error", err, "id", idStr)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid expense Id"})
 		return
 	}
 
-	expense, err := h.service.GetByID(c.Request.Context(), id)
+	expense, err := h.service.GetById(c.Request.Context(), id)
 	if err != nil {
 		h.logger.Errorw("Failed to get expense", "error", err, "id", id)
 		c.JSON(http.StatusNotFound, gin.H{"error": "expense not found"})
@@ -83,8 +83,8 @@ func (h *handler) Update(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
-		h.logger.Errorw("Invalid expense ID", "error", err, "id", idStr)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid expense ID"})
+		h.logger.Errorw("Invalid expense Id", "error", err, "id", idStr)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid expense Id"})
 		return
 	}
 
@@ -109,8 +109,8 @@ func (h *handler) Delete(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
-		h.logger.Errorw("Invalid expense ID", "error", err, "id", idStr)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid expense ID"})
+		h.logger.Errorw("Invalid expense Id", "error", err, "id", idStr)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid expense Id"})
 		return
 	}
 
@@ -129,26 +129,26 @@ func (h *handler) List(c *gin.Context) {
 	size, _ := strconv.Atoi(c.DefaultQuery("size", "10"))
 
 	// Get optional filters
-	eventIDStr := c.Query("event_id")
-	userIDStr := c.Query("user_id")
+	eventIdStr := c.Query("event_id")
+	userIdStr := c.Query("user_id")
 
-	var eventID *uuid.UUID
-	if eventIDStr != "" {
-		parsed, err := uuid.Parse(eventIDStr)
+	var eventId *int
+	if eventIdStr != "" {
+		parsed, err := uuid.Parse(eventIdStr)
 		if err == nil {
-			eventID = &parsed
+			eventId = &parsed
 		} else {
-			h.logger.Warnw("Invalid event ID filter", "error", err, "event_id", eventIDStr)
+			h.logger.Warnw("Invalid event Id filter", "error", err, "event_id", eventIdStr)
 		}
 	}
 
-	var userID *uuid.UUID
-	if userIDStr != "" {
-		parsed, err := uuid.Parse(userIDStr)
+	var userId *int
+	if userIdStr != "" {
+		parsed, err := uuid.Parse(userIdStr)
 		if err == nil {
-			userID = &parsed
+			userId = &parsed
 		} else {
-			h.logger.Warnw("Invalid user ID filter", "error", err, "user_id", userIDStr)
+			h.logger.Warnw("Invalid user Id filter", "error", err, "user_id", userIdStr)
 		}
 	}
 
@@ -163,10 +163,10 @@ func (h *handler) List(c *gin.Context) {
 	var err error
 
 	// Apply filters if provided
-	if eventID != nil {
-		expenses, err = h.service.ListByEvent(c.Request.Context(), *eventID, page, size)
-	} else if userID != nil {
-		expenses, err = h.service.ListByUser(c.Request.Context(), *userID, page, size)
+	if eventId != nil {
+		expenses, err = h.service.ListByEvent(c.Request.Context(), *eventId, page, size)
+	} else if userId != nil {
+		expenses, err = h.service.ListByUser(c.Request.Context(), *userId, page, size)
 	} else {
 		// Default to all expenses (only for admin purposes, should be restricted in the gateway)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "event_id or user_id parameter is required"})
@@ -174,7 +174,7 @@ func (h *handler) List(c *gin.Context) {
 	}
 
 	if err != nil {
-		h.logger.Errorw("Failed to list expenses", "error", err, "page", page, "size", size, "event_id", eventID, "user_id", userID)
+		h.logger.Errorw("Failed to list expenses", "error", err, "page", page, "size", size, "event_id", eventId, "user_id", userId)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

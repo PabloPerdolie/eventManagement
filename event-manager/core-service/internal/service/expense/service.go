@@ -4,25 +4,23 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math"
-	"time"
-
 	"github.com/PabloPerdolie/event-manager/core-service/internal/model"
 	"github.com/PabloPerdolie/event-manager/core-service/internal/repository/expense"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
+	"math"
 )
 
 // Service provides expense-related operations
 type Service interface {
-	Create(ctx context.Context, req model.ExpenseCreateRequest) (uuid.UUID, error)
-	GetByID(ctx context.Context, id uuid.UUID) (model.ExpenseResponse, error)
-	Update(ctx context.Context, id uuid.UUID, req model.ExpenseUpdateRequest) error
-	Delete(ctx context.Context, id uuid.UUID) error
-	ListByEvent(ctx context.Context, eventID uuid.UUID, page, size int) (model.ExpensesResponse, error)
-	ListByUser(ctx context.Context, userID uuid.UUID, page, size int) (model.ExpensesResponse, error)
-	GetEventTotalExpenses(ctx context.Context, eventID uuid.UUID) (float64, error)
-	CreateShares(ctx context.Context, expenseID uuid.UUID, participants []uuid.UUID, method model.ExpenseSplitMethod) error
+	Create(ctx context.Context, req model.ExpenseCreateRequest) (int, error)
+	GetById(ctx context.Context, id int) (model.ExpenseResponse, error)
+	Update(ctx context.Context, id int, req model.ExpenseUpdateRequest) error
+	Delete(ctx context.Context, id int) error
+	ListByEvent(ctx context.Context, eventId int, page, size int) (model.ExpensesResponse, error)
+	ListByUser(ctx context.Context, userId int, page, size int) (model.ExpensesResponse, error)
+	GetEventTotalExpenses(ctx context.Context, eventId int) (float64, error)
+	CreateShares(ctx context.Context, expenseId int, participants []int, method model.ExpenseSplitMethod) error
 }
 
 type service struct {
@@ -41,9 +39,9 @@ func NewService(expenseRepo expense.Repository, expenseShareRepo expense.ShareRe
 }
 
 // Create creates a new expense
-func (s *service) Create(ctx context.Context, req model.ExpenseCreateRequest) (uuid.UUID, error) {
+func (s *service) Create(ctx context.Context, req model.ExpenseCreateRequest) (int, error) {
 	expense := model.Expense{
-		EventID:     req.EventID,
+		EventId:     req.EventId,
 		Description: req.Description,
 		Amount:      req.Amount,
 		Currency:    req.Currency,
@@ -54,13 +52,13 @@ func (s *service) Create(ctx context.Context, req model.ExpenseCreateRequest) (u
 
 	id, err := s.expenseRepo.Create(ctx, expense)
 	if err != nil {
-		s.logger.Errorw("Failed to create expense", "error", err, "eventId", req.EventID)
+		s.logger.Errorw("Failed to create expense", "error", err, "eventId", req.EventId)
 		return uuid.Nil, fmt.Errorf("failed to create expense: %w", err)
 	}
 
 	// Create expense shares if participants are provided
-	if len(req.ParticipantIDs) > 0 {
-		err = s.CreateShares(ctx, id, req.ParticipantIDs, req.SplitMethod)
+	if len(req.ParticipantIds) > 0 {
+		err = s.CreateShares(ctx, id, req.ParticipantIds, req.SplitMethod)
 		if err != nil {
 			s.logger.Errorw("Failed to create expense shares", "error", err, "expenseId", id)
 			// We don't return an error here, as the expense was already created successfully
@@ -71,17 +69,17 @@ func (s *service) Create(ctx context.Context, req model.ExpenseCreateRequest) (u
 }
 
 // CreateShares creates expense shares for participants based on the split method
-func (s *service) CreateShares(ctx context.Context, expenseID uuid.UUID, participants []uuid.UUID, method model.ExpenseSplitMethod) error {
+func (s *service) CreateShares(ctx context.Context, expenseId int, participants []int, method model.ExpenseSplitMethod) error {
 	// Get the expense to determine the amount to split
-	expense, err := s.expenseRepo.GetByID(ctx, expenseID)
+	expense, err := s.expenseRepo.GetById(ctx, expenseId)
 	if err != nil {
-		return fmt.Errorf("failed to get expense for creating shares: %w", err)
+		return errors.WithMessage(err, "")("failed to get expense for creating shares: %w", err)
 	}
 
 	// Delete any existing shares for this expense
-	err = s.expenseShareRepo.DeleteByExpense(ctx, expenseID)
+	err = s.expenseShareRepo.DeleteByExpense(ctx, expenseId)
 	if err != nil {
-		return fmt.Errorf("failed to delete existing expense shares: %w", err)
+		return errors.WithMessage(err, "")("failed to delete existing expense shares: %w", err)
 	}
 
 	// Create shares based on the split method
@@ -96,17 +94,17 @@ func (s *service) CreateShares(ctx context.Context, expenseID uuid.UUID, partici
 		// Round to 2 decimal places
 		shareAmount = math.Round(shareAmount*100) / 100
 
-		for _, participantID := range participants {
+		for _, participantId := range participants {
 			share := model.ExpenseShare{
-				ExpenseID:   expenseID,
-				UserID:      participantID,
+				ExpenseId:   expenseId,
+				UserId:      participantId,
 				ShareAmount: shareAmount,
 				IsPaid:      false,
 			}
 
 			_, err := s.expenseShareRepo.Create(ctx, share)
 			if err != nil {
-				s.logger.Warnw("Failed to create expense share", "error", err, "expenseId", expenseID, "userId", participantID)
+				s.logger.Warnw("Failed to create expense share", "error", err, "expenseId", expenseId, "userId", participantId)
 				// Continue even if one share fails
 			}
 		}
@@ -122,17 +120,17 @@ func (s *service) CreateShares(ctx context.Context, expenseID uuid.UUID, partici
 		// Round to 2 decimal places
 		shareAmount = math.Round(shareAmount*100) / 100
 
-		for _, participantID := range participants {
+		for _, participantId := range participants {
 			share := model.ExpenseShare{
-				ExpenseID:   expenseID,
-				UserID:      participantID,
+				ExpenseId:   expenseId,
+				UserId:      participantId,
 				ShareAmount: shareAmount,
 				IsPaid:      false,
 			}
 
 			_, err := s.expenseShareRepo.Create(ctx, share)
 			if err != nil {
-				s.logger.Warnw("Failed to create expense share", "error", err, "expenseId", expenseID, "userId", participantID)
+				s.logger.Warnw("Failed to create expense share", "error", err, "expenseId", expenseId, "userId", participantId)
 				// Continue even if one share fails
 			}
 		}
@@ -143,17 +141,17 @@ func (s *service) CreateShares(ctx context.Context, expenseID uuid.UUID, partici
 		return errors.New("custom split method requires additional data")
 
 	default:
-		return fmt.Errorf("unsupported split method: %s", method)
+		return errors.WithMessage(err, "")("unsupported split method: %s", method)
 	}
 
 	return nil
 }
 
-// GetByID retrieves an expense by ID
-func (s *service) GetByID(ctx context.Context, id uuid.UUID) (model.ExpenseResponse, error) {
-	expense, err := s.expenseRepo.GetByID(ctx, id)
+// GetById retrieves an expense by Id
+func (s *service) GetById(ctx context.Context, id int) (model.ExpenseResponse, error) {
+	expense, err := s.expenseRepo.GetById(ctx, id)
 	if err != nil {
-		s.logger.Errorw("Failed to get expense by ID", "error", err, "id", id)
+		s.logger.Errorw("Failed to get expense by Id", "error", err, "id", id)
 		return model.ExpenseResponse{}, fmt.Errorf("failed to get expense: %w", err)
 	}
 
@@ -164,15 +162,15 @@ func (s *service) GetByID(ctx context.Context, id uuid.UUID) (model.ExpenseRespo
 		// Continue even if we can't get shares
 	}
 
-	// Extract participant IDs and create share responses
-	participantIDs := make([]uuid.UUID, len(shares))
+	// Extract participant Ids and create share responses
+	participantIds := make([]int, len(shares))
 	shareResponses := make([]model.ExpenseShareResponse, len(shares))
 	for i, share := range shares {
-		participantIDs[i] = share.UserID
+		participantIds[i] = share.UserId
 		shareResponses[i] = model.ExpenseShareResponse{
-			ID:          share.ID,
-			ExpenseID:   share.ExpenseID,
-			UserID:      share.UserID,
+			Id:          share.Id,
+			ExpenseId:   share.ExpenseId,
+			UserId:      share.UserId,
 			ShareAmount: share.ShareAmount,
 			IsPaid:      share.IsPaid,
 			PaidAt:      share.PaidAt,
@@ -180,8 +178,8 @@ func (s *service) GetByID(ctx context.Context, id uuid.UUID) (model.ExpenseRespo
 	}
 
 	return model.ExpenseResponse{
-		ID:             expense.ID,
-		EventID:        expense.EventID,
+		Id:             expense.Id,
+		EventId:        expense.EventId,
 		Description:    expense.Description,
 		Amount:         expense.Amount,
 		Currency:       expense.Currency,
@@ -189,17 +187,17 @@ func (s *service) GetByID(ctx context.Context, id uuid.UUID) (model.ExpenseRespo
 		CreatedBy:      expense.CreatedBy,
 		SplitMethod:    expense.SplitMethod,
 		CreatedAt:      expense.CreatedAt,
-		ParticipantIDs: participantIDs,
+		ParticipantIds: participantIds,
 		Shares:         shareResponses,
 	}, nil
 }
 
 // Update updates an expense
-func (s *service) Update(ctx context.Context, id uuid.UUID, req model.ExpenseUpdateRequest) error {
-	expense, err := s.expenseRepo.GetByID(ctx, id)
+func (s *service) Update(ctx context.Context, id int, req model.ExpenseUpdateRequest) error {
+	expense, err := s.expenseRepo.GetById(ctx, id)
 	if err != nil {
 		s.logger.Errorw("Failed to get expense for update", "error", err, "id", id)
-		return fmt.Errorf("failed to get expense: %w", err)
+		return errors.WithMessage(err, "")("failed to get expense: %w", err)
 	}
 
 	// Update fields if provided
@@ -225,20 +223,20 @@ func (s *service) Update(ctx context.Context, id uuid.UUID, req model.ExpenseUpd
 
 	if err := s.expenseRepo.Update(ctx, expense); err != nil {
 		s.logger.Errorw("Failed to update expense", "error", err, "id", id)
-		return fmt.Errorf("failed to update expense: %w", err)
+		return errors.WithMessage(err, "")("failed to update expense: %w", err)
 	}
 
 	// Update shares if participants and/or split method are provided
-	if req.ParticipantIDs != nil && len(*req.ParticipantIDs) > 0 {
+	if req.ParticipantIds != nil && len(*req.ParticipantIds) > 0 {
 		splitMethod := expense.SplitMethod
 		if req.SplitMethod != nil {
 			splitMethod = *req.SplitMethod
 		}
 
-		err = s.CreateShares(ctx, id, *req.ParticipantIDs, splitMethod)
+		err = s.CreateShares(ctx, id, *req.ParticipantIds, splitMethod)
 		if err != nil {
 			s.logger.Errorw("Failed to update expense shares", "error", err, "expenseId", id)
-			return fmt.Errorf("failed to update expense shares: %w", err)
+			return errors.WithMessage(err, "")("failed to update expense shares: %w", err)
 		}
 	}
 
@@ -246,12 +244,12 @@ func (s *service) Update(ctx context.Context, id uuid.UUID, req model.ExpenseUpd
 }
 
 // Delete deletes an expense
-func (s *service) Delete(ctx context.Context, id uuid.UUID) error {
+func (s *service) Delete(ctx context.Context, id int) error {
 	// First check if the expense exists
-	_, err := s.expenseRepo.GetByID(ctx, id)
+	_, err := s.expenseRepo.GetById(ctx, id)
 	if err != nil {
 		s.logger.Errorw("Failed to get expense for deletion", "error", err, "id", id)
-		return fmt.Errorf("failed to get expense: %w", err)
+		return errors.WithMessage(err, "")("failed to get expense: %w", err)
 	}
 
 	// Delete associated shares
@@ -264,14 +262,14 @@ func (s *service) Delete(ctx context.Context, id uuid.UUID) error {
 	// Delete the expense
 	if err := s.expenseRepo.Delete(ctx, id); err != nil {
 		s.logger.Errorw("Failed to delete expense", "error", err, "id", id)
-		return fmt.Errorf("failed to delete expense: %w", err)
+		return errors.WithMessage(err, "")("failed to delete expense: %w", err)
 	}
 
 	return nil
 }
 
 // ListByEvent retrieves a list of expenses for a specific event with pagination
-func (s *service) ListByEvent(ctx context.Context, eventID uuid.UUID, page, size int) (model.ExpensesResponse, error) {
+func (s *service) ListByEvent(ctx context.Context, eventId int, page, size int) (model.ExpensesResponse, error) {
 	// Set default pagination values if not provided
 	if page < 1 {
 		page = 1
@@ -281,9 +279,9 @@ func (s *service) ListByEvent(ctx context.Context, eventID uuid.UUID, page, size
 	}
 
 	offset := (page - 1) * size
-	expenses, total, err := s.expenseRepo.ListByEvent(ctx, eventID, size, offset)
+	expenses, total, err := s.expenseRepo.ListByEvent(ctx, eventId, size, offset)
 	if err != nil {
-		s.logger.Errorw("Failed to list event expenses", "error", err, "eventId", eventID, "page", page, "size", size)
+		s.logger.Errorw("Failed to list event expenses", "error", err, "eventId", eventId, "page", page, "size", size)
 		return model.ExpensesResponse{}, fmt.Errorf("failed to list event expenses: %w", err)
 	}
 
@@ -291,13 +289,13 @@ func (s *service) ListByEvent(ctx context.Context, eventID uuid.UUID, page, size
 	expenseResponses := make([]model.ExpenseResponse, len(expenses))
 	for i, expense := range expenses {
 		// Get expense shares
-		shares, err := s.expenseShareRepo.ListByExpense(ctx, expense.ID)
+		shares, err := s.expenseShareRepo.ListByExpense(ctx, expense.Id)
 		if err != nil {
-			s.logger.Warnw("Failed to get expense shares", "error", err, "expenseId", expense.ID)
+			s.logger.Warnw("Failed to get expense shares", "error", err, "expenseId", expense.Id)
 			// Continue even if we can't get shares
 			expenseResponses[i] = model.ExpenseResponse{
-				ID:          expense.ID,
-				EventID:     expense.EventID,
+				Id:          expense.Id,
+				EventId:     expense.EventId,
 				Description: expense.Description,
 				Amount:      expense.Amount,
 				Currency:    expense.Currency,
@@ -309,15 +307,15 @@ func (s *service) ListByEvent(ctx context.Context, eventID uuid.UUID, page, size
 			continue
 		}
 
-		// Extract participant IDs and create share responses
-		participantIDs := make([]uuid.UUID, len(shares))
+		// Extract participant Ids and create share responses
+		participantIds := make([]int, len(shares))
 		shareResponses := make([]model.ExpenseShareResponse, len(shares))
 		for j, share := range shares {
-			participantIDs[j] = share.UserID
+			participantIds[j] = share.UserId
 			shareResponses[j] = model.ExpenseShareResponse{
-				ID:          share.ID,
-				ExpenseID:   share.ExpenseID,
-				UserID:      share.UserID,
+				Id:          share.Id,
+				ExpenseId:   share.ExpenseId,
+				UserId:      share.UserId,
 				ShareAmount: share.ShareAmount,
 				IsPaid:      share.IsPaid,
 				PaidAt:      share.PaidAt,
@@ -325,8 +323,8 @@ func (s *service) ListByEvent(ctx context.Context, eventID uuid.UUID, page, size
 		}
 
 		expenseResponses[i] = model.ExpenseResponse{
-			ID:             expense.ID,
-			EventID:        expense.EventID,
+			Id:             expense.Id,
+			EventId:        expense.EventId,
 			Description:    expense.Description,
 			Amount:         expense.Amount,
 			Currency:       expense.Currency,
@@ -334,7 +332,7 @@ func (s *service) ListByEvent(ctx context.Context, eventID uuid.UUID, page, size
 			CreatedBy:      expense.CreatedBy,
 			SplitMethod:    expense.SplitMethod,
 			CreatedAt:      expense.CreatedAt,
-			ParticipantIDs: participantIDs,
+			ParticipantIds: participantIds,
 			Shares:         shareResponses,
 		}
 	}
@@ -346,7 +344,7 @@ func (s *service) ListByEvent(ctx context.Context, eventID uuid.UUID, page, size
 }
 
 // ListByUser retrieves a list of expenses created by a specific user with pagination
-func (s *service) ListByUser(ctx context.Context, userID uuid.UUID, page, size int) (model.ExpensesResponse, error) {
+func (s *service) ListByUser(ctx context.Context, userId int, page, size int) (model.ExpensesResponse, error) {
 	// Set default pagination values if not provided
 	if page < 1 {
 		page = 1
@@ -356,9 +354,9 @@ func (s *service) ListByUser(ctx context.Context, userID uuid.UUID, page, size i
 	}
 
 	offset := (page - 1) * size
-	expenses, total, err := s.expenseRepo.ListByUser(ctx, userID, size, offset)
+	expenses, total, err := s.expenseRepo.ListByUser(ctx, userId, size, offset)
 	if err != nil {
-		s.logger.Errorw("Failed to list user expenses", "error", err, "userId", userID, "page", page, "size", size)
+		s.logger.Errorw("Failed to list user expenses", "error", err, "userId", userId, "page", page, "size", size)
 		return model.ExpensesResponse{}, fmt.Errorf("failed to list user expenses: %w", err)
 	}
 
@@ -366,13 +364,13 @@ func (s *service) ListByUser(ctx context.Context, userID uuid.UUID, page, size i
 	expenseResponses := make([]model.ExpenseResponse, len(expenses))
 	for i, expense := range expenses {
 		// Get expense shares
-		shares, err := s.expenseShareRepo.ListByExpense(ctx, expense.ID)
+		shares, err := s.expenseShareRepo.ListByExpense(ctx, expense.Id)
 		if err != nil {
-			s.logger.Warnw("Failed to get expense shares", "error", err, "expenseId", expense.ID)
+			s.logger.Warnw("Failed to get expense shares", "error", err, "expenseId", expense.Id)
 			// Continue even if we can't get shares
 			expenseResponses[i] = model.ExpenseResponse{
-				ID:          expense.ID,
-				EventID:     expense.EventID,
+				Id:          expense.Id,
+				EventId:     expense.EventId,
 				Description: expense.Description,
 				Amount:      expense.Amount,
 				Currency:    expense.Currency,
@@ -384,15 +382,15 @@ func (s *service) ListByUser(ctx context.Context, userID uuid.UUID, page, size i
 			continue
 		}
 
-		// Extract participant IDs and create share responses
-		participantIDs := make([]uuid.UUID, len(shares))
+		// Extract participant Ids and create share responses
+		participantIds := make([]int, len(shares))
 		shareResponses := make([]model.ExpenseShareResponse, len(shares))
 		for j, share := range shares {
-			participantIDs[j] = share.UserID
+			participantIds[j] = share.UserId
 			shareResponses[j] = model.ExpenseShareResponse{
-				ID:          share.ID,
-				ExpenseID:   share.ExpenseID,
-				UserID:      share.UserID,
+				Id:          share.Id,
+				ExpenseId:   share.ExpenseId,
+				UserId:      share.UserId,
 				ShareAmount: share.ShareAmount,
 				IsPaid:      share.IsPaid,
 				PaidAt:      share.PaidAt,
@@ -400,8 +398,8 @@ func (s *service) ListByUser(ctx context.Context, userID uuid.UUID, page, size i
 		}
 
 		expenseResponses[i] = model.ExpenseResponse{
-			ID:             expense.ID,
-			EventID:        expense.EventID,
+			Id:             expense.Id,
+			EventId:        expense.EventId,
 			Description:    expense.Description,
 			Amount:         expense.Amount,
 			Currency:       expense.Currency,
@@ -409,7 +407,7 @@ func (s *service) ListByUser(ctx context.Context, userID uuid.UUID, page, size i
 			CreatedBy:      expense.CreatedBy,
 			SplitMethod:    expense.SplitMethod,
 			CreatedAt:      expense.CreatedAt,
-			ParticipantIDs: participantIDs,
+			ParticipantIds: participantIds,
 			Shares:         shareResponses,
 		}
 	}
@@ -421,10 +419,10 @@ func (s *service) ListByUser(ctx context.Context, userID uuid.UUID, page, size i
 }
 
 // GetEventTotalExpenses calculates the total amount of expenses for an event
-func (s *service) GetEventTotalExpenses(ctx context.Context, eventID uuid.UUID) (float64, error) {
-	total, err := s.expenseRepo.GetEventTotalExpenses(ctx, eventID)
+func (s *service) GetEventTotalExpenses(ctx context.Context, eventId int) (float64, error) {
+	total, err := s.expenseRepo.GetEventTotalExpenses(ctx, eventId)
 	if err != nil {
-		s.logger.Errorw("Failed to calculate event total expenses", "error", err, "eventId", eventID)
+		s.logger.Errorw("Failed to calculate event total expenses", "error", err, "eventId", eventId)
 		return 0, fmt.Errorf("failed to calculate event total expenses: %w", err)
 	}
 

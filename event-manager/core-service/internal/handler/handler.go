@@ -46,7 +46,7 @@ func (h *Handler) InitRoutes(router *gin.Engine) {
 		{
 			userRoutes.GET("", h.User.List)
 			userRoutes.POST("", h.User.Create)
-			userRoutes.GET("/:id", h.User.GetByID)
+			userRoutes.GET("/:id", h.User.GetById)
 			userRoutes.PUT("/:id", h.User.Update)
 			userRoutes.DELETE("/:id", h.User.Delete)
 		}
@@ -56,14 +56,14 @@ func (h *Handler) InitRoutes(router *gin.Engine) {
 		{
 			eventRoutes.GET("", h.Event.List)
 			eventRoutes.POST("", h.Event.Create)
-			eventRoutes.GET("/:id", h.Event.GetByID)
+			eventRoutes.GET("/:id", h.Event.GetById)
 			eventRoutes.PUT("/:id", h.Event.Update)
 			eventRoutes.DELETE("/:id", h.Event.Delete)
 
 			// Event participants
 			eventRoutes.GET("/:id/participants", h.EventParticipant.ListByEvent)
 			eventRoutes.POST("/:id/participants", h.EventParticipant.Create)
-			eventRoutes.GET("/:id/participants/:user_id", h.EventParticipant.GetByID)
+			eventRoutes.GET("/:id/participants/:user_id", h.EventParticipant.GetById)
 			eventRoutes.PUT("/:id/participants/:user_id", h.EventParticipant.Update)
 			eventRoutes.DELETE("/:id/participants/:user_id", h.EventParticipant.Delete)
 		}
@@ -73,14 +73,14 @@ func (h *Handler) InitRoutes(router *gin.Engine) {
 		{
 			taskRoutes.GET("", h.Task.List)
 			taskRoutes.POST("", h.Task.Create)
-			taskRoutes.GET("/:id", h.Task.GetByID)
+			taskRoutes.GET("/:id", h.Task.GetById)
 			taskRoutes.PUT("/:id", h.Task.Update)
 			taskRoutes.DELETE("/:id", h.Task.Delete)
 
 			// Task assignments
 			taskRoutes.GET("/:id/assignments", h.TaskAssignment.ListByTask)
 			taskRoutes.POST("/:id/assignments", h.TaskAssignment.Create)
-			taskRoutes.GET("/:id/assignments/:assignment_id", h.TaskAssignment.GetByID)
+			taskRoutes.GET("/:id/assignments/:assignment_id", h.TaskAssignment.GetById)
 			taskRoutes.PUT("/:id/assignments/:assignment_id", h.TaskAssignment.Update)
 			taskRoutes.DELETE("/:id/assignments/:assignment_id", h.TaskAssignment.Delete)
 		}
@@ -90,14 +90,14 @@ func (h *Handler) InitRoutes(router *gin.Engine) {
 		{
 			expenseRoutes.GET("", h.Expense.List)
 			expenseRoutes.POST("", h.Expense.Create)
-			expenseRoutes.GET("/:id", h.Expense.GetByID)
+			expenseRoutes.GET("/:id", h.Expense.GetById)
 			expenseRoutes.PUT("/:id", h.Expense.Update)
 			expenseRoutes.DELETE("/:id", h.Expense.Delete)
 
 			// Expense shares
 			expenseRoutes.GET("/:id/shares", h.ExpenseShare.ListByExpense)
 			expenseRoutes.POST("/:id/shares", h.ExpenseShare.Create)
-			expenseRoutes.GET("/:id/shares/:share_id", h.ExpenseShare.GetByID)
+			expenseRoutes.GET("/:id/shares/:share_id", h.ExpenseShare.GetById)
 			expenseRoutes.PUT("/:id/shares/:share_id", h.ExpenseShare.Update)
 			expenseRoutes.DELETE("/:id/shares/:share_id", h.ExpenseShare.Delete)
 		}

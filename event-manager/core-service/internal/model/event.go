@@ -13,7 +13,7 @@ const (
 )
 
 type Event struct {
-	EventID     int       `db:"event_id"`
+	EventId     int       `db:"event_id"`
 	OrganizerID int       `db:"organizer_id"`
 	Title       string    `db:"title"`
 	Description string    `db:"description"`

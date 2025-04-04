@@ -14,7 +14,7 @@ import (
 // ParticipantHandler handles event participant-related HTTP requests
 type ParticipantHandler interface {
 	Create(c *gin.Context)
-	GetByID(c *gin.Context)
+	GetById(c *gin.Context)
 	Update(c *gin.Context)
 	Delete(c *gin.Context)
 	ListByEvent(c *gin.Context)
@@ -35,11 +35,11 @@ func NewParticipantHandler(service event.ParticipantService, logger *zap.Sugared
 
 // Create handles creating a new event participant
 func (h *participantHandler) Create(c *gin.Context) {
-	eventIDStr := c.Param("id")
-	eventID, err := uuid.Parse(eventIDStr)
+	eventIdStr := c.Param("id")
+	eventId, err := uuid.Parse(eventIdStr)
 	if err != nil {
-		h.logger.Errorw("Invalid event ID", "error", err, "id", eventIDStr)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid event ID"})
+		h.logger.Errorw("Invalid event Id", "error", err, "id", eventIdStr)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid event Id"})
 		return
 	}
 
@@ -50,11 +50,11 @@ func (h *participantHandler) Create(c *gin.Context) {
 		return
 	}
 
-	req.EventID = eventID
+	req.EventId = eventId
 
 	id, err := h.service.Create(c.Request.Context(), req)
 	if err != nil {
-		h.logger.Errorw("Failed to create event participant", "error", err, "eventId", eventID)
+		h.logger.Errorw("Failed to create event participant", "error", err, "eventId", eventId)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -62,28 +62,28 @@ func (h *participantHandler) Create(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"id": id})
 }
 
-// GetByID handles getting an event participant by event ID and user ID
-func (h *participantHandler) GetByID(c *gin.Context) {
-	eventIDStr := c.Param("id")
-	userIDStr := c.Param("user_id")
+// GetById handles getting an event participant by event Id and user Id
+func (h *participantHandler) GetById(c *gin.Context) {
+	eventIdStr := c.Param("id")
+	userIdStr := c.Param("user_id")
 
-	eventID, err := uuid.Parse(eventIDStr)
+	eventId, err := uuid.Parse(eventIdStr)
 	if err != nil {
-		h.logger.Errorw("Invalid event ID", "error", err, "id", eventIDStr)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid event ID"})
+		h.logger.Errorw("Invalid event Id", "error", err, "id", eventIdStr)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid event Id"})
 		return
 	}
 
-	userID, err := uuid.Parse(userIDStr)
+	userId, err := uuid.Parse(userIdStr)
 	if err != nil {
-		h.logger.Errorw("Invalid user ID", "error", err, "id", userIDStr)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user ID"})
+		h.logger.Errorw("Invalid user Id", "error", err, "id", userIdStr)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user Id"})
 		return
 	}
 
-	participant, err := h.service.GetByEventAndUserID(c.Request.Context(), eventID, userID)
+	participant, err := h.service.GetByEventAndUserId(c.Request.Context(), eventId, userId)
 	if err != nil {
-		h.logger.Errorw("Failed to get event participant", "error", err, "eventId", eventID, "userId", userID)
+		h.logger.Errorw("Failed to get event participant", "error", err, "eventId", eventId, "userId", userId)
 		c.JSON(http.StatusNotFound, gin.H{"error": "event participant not found"})
 		return
 	}
@@ -93,20 +93,20 @@ func (h *participantHandler) GetByID(c *gin.Context) {
 
 // Update handles updating an event participant
 func (h *participantHandler) Update(c *gin.Context) {
-	eventIDStr := c.Param("id")
-	userIDStr := c.Param("user_id")
+	eventIdStr := c.Param("id")
+	userIdStr := c.Param("user_id")
 
-	eventID, err := uuid.Parse(eventIDStr)
+	eventId, err := uuid.Parse(eventIdStr)
 	if err != nil {
-		h.logger.Errorw("Invalid event ID", "error", err, "id", eventIDStr)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid event ID"})
+		h.logger.Errorw("Invalid event Id", "error", err, "id", eventIdStr)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid event Id"})
 		return
 	}
 
-	userID, err := uuid.Parse(userIDStr)
+	userId, err := uuid.Parse(userIdStr)
 	if err != nil {
-		h.logger.Errorw("Invalid user ID", "error", err, "id", userIDStr)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user ID"})
+		h.logger.Errorw("Invalid user Id", "error", err, "id", userIdStr)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user Id"})
 		return
 	}
 
@@ -117,12 +117,12 @@ func (h *participantHandler) Update(c *gin.Context) {
 		return
 	}
 
-	// Set event and user IDs
-	req.EventID = eventID
-	req.UserID = userID
+	// Set event and user Ids
+	req.EventId = eventId
+	req.UserId = userId
 
 	if err := h.service.Update(c.Request.Context(), req); err != nil {
-		h.logger.Errorw("Failed to update event participant", "error", err, "eventId", eventID, "userId", userID)
+		h.logger.Errorw("Failed to update event participant", "error", err, "eventId", eventId, "userId", userId)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -132,25 +132,25 @@ func (h *participantHandler) Update(c *gin.Context) {
 
 // Delete handles deleting an event participant
 func (h *participantHandler) Delete(c *gin.Context) {
-	eventIDStr := c.Param("id")
-	userIDStr := c.Param("user_id")
+	eventIdStr := c.Param("id")
+	userIdStr := c.Param("user_id")
 
-	eventID, err := uuid.Parse(eventIDStr)
+	eventId, err := uuid.Parse(eventIdStr)
 	if err != nil {
-		h.logger.Errorw("Invalid event ID", "error", err, "id", eventIDStr)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid event ID"})
+		h.logger.Errorw("Invalid event Id", "error", err, "id", eventIdStr)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid event Id"})
 		return
 	}
 
-	userID, err := uuid.Parse(userIDStr)
+	userId, err := uuid.Parse(userIdStr)
 	if err != nil {
-		h.logger.Errorw("Invalid user ID", "error", err, "id", userIDStr)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user ID"})
+		h.logger.Errorw("Invalid user Id", "error", err, "id", userIdStr)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user Id"})
 		return
 	}
 
-	if err := h.service.Delete(c.Request.Context(), eventID, userID); err != nil {
-		h.logger.Errorw("Failed to delete event participant", "error", err, "eventId", eventID, "userId", userID)
+	if err := h.service.Delete(c.Request.Context(), eventId, userId); err != nil {
+		h.logger.Errorw("Failed to delete event participant", "error", err, "eventId", eventId, "userId", userId)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -160,11 +160,11 @@ func (h *participantHandler) Delete(c *gin.Context) {
 
 // ListByEvent handles listing event participants for a specific event
 func (h *participantHandler) ListByEvent(c *gin.Context) {
-	eventIDStr := c.Param("id")
-	eventID, err := uuid.Parse(eventIDStr)
+	eventIdStr := c.Param("id")
+	eventId, err := uuid.Parse(eventIdStr)
 	if err != nil {
-		h.logger.Errorw("Invalid event ID", "error", err, "id", eventIDStr)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid event ID"})
+		h.logger.Errorw("Invalid event Id", "error", err, "id", eventIdStr)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid event Id"})
 		return
 	}
 
@@ -178,9 +178,9 @@ func (h *participantHandler) ListByEvent(c *gin.Context) {
 		size = 10
 	}
 
-	participants, err := h.service.ListByEvent(c.Request.Context(), eventID, page, size)
+	participants, err := h.service.ListByEvent(c.Request.Context(), eventId, page, size)
 	if err != nil {
-		h.logger.Errorw("Failed to list event participants", "error", err, "eventId", eventID, "page", page, "size", size)
+		h.logger.Errorw("Failed to list event participants", "error", err, "eventId", eventId, "page", page, "size", size)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
