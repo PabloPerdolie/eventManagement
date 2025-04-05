@@ -2,7 +2,6 @@ package event
 
 import (
 	"context"
-	"fmt"
 	"github.com/PabloPerdolie/event-manager/core-service/internal/domain"
 	"github.com/PabloPerdolie/event-manager/core-service/internal/model"
 	"github.com/pkg/errors"
@@ -150,7 +149,7 @@ func (s *Service) List(ctx context.Context, page, size int) (*domain.EventsRespo
 	events, err := s.eventRepo.List(ctx, size, offset)
 	if err != nil {
 		s.logger.Errorw("Failed to list events", "error", err, "page", page, "size", size)
-		return nil, fmt.Errorf("failed to list events: %w", err)
+		return nil, errors.WithMessage(err, "list events")
 	}
 
 	return convertToEventsResponse(events), nil
@@ -168,7 +167,7 @@ func (s *Service) ListByOrganizer(ctx context.Context, organizerId int, page, si
 	events, err := s.eventRepo.ListByOrganizer(ctx, organizerId, size, offset)
 	if err != nil {
 		s.logger.Errorw("Failed to list organizer events", "error", err, "organizerId", organizerId, "page", page, "size", size)
-		return nil, fmt.Errorf("failed to list organizer events: %w", err)
+		return nil, errors.WithMessage(err, "list organizer events")
 	}
 
 	return convertToEventsResponse(events), nil
@@ -186,7 +185,7 @@ func (s *Service) ListByParticipant(ctx context.Context, participantId int, page
 	events, err := s.eventRepo.ListByParticipant(ctx, participantId, size, offset)
 	if err != nil {
 		s.logger.Errorw("Failed to list participant events", "error", err, "participantId", participantId, "page", page, "size", size)
-		return nil, fmt.Errorf("failed to list participant events: %w", err)
+		return nil, errors.WithMessage(err, "list participant events")
 	}
 
 	return convertToEventsResponse(events), nil

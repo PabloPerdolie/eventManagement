@@ -2,125 +2,99 @@ package task
 
 import (
 	"context"
-	"fmt"
+	"github.com/PabloPerdolie/event-manager/core-service/internal/domain"
+	"github.com/pkg/errors"
 	"time"
 
 	"github.com/PabloPerdolie/event-manager/core-service/internal/model"
-	"github.com/PabloPerdolie/event-manager/core-service/internal/repository/task"
-	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
-// Service provides task-related operations
-type Service interface {
-	Create(ctx context.Context, req model.TaskCreateRequest) (int, error)
-	GetById(ctx context.Context, id int) (model.TaskResponse, error)
-	Update(ctx context.Context, id int, req model.TaskUpdateRequest) error
+type Repository interface {
+	Create(ctx context.Context, task model.Task) (int, error)
+	GetById(ctx context.Context, id int) (model.Task, error)
+	Update(ctx context.Context, task model.Task) error
 	Delete(ctx context.Context, id int) error
-	ListByEvent(ctx context.Context, eventId int, page, size int) (model.TasksResponse, error)
-	ListByUser(ctx context.Context, userId int, page, size int) (model.TasksResponse, error)
-	UpdateStatus(ctx context.Context, id int, status model.TaskStatus) error
-	GetEventSummary(ctx context.Context, eventId int) (model.TaskEventSummary, error)
+	ListByEvent(ctx context.Context, eventId, limit, offset int) ([]model.Task, error)
+	ListByUser(ctx context.Context, userId, limit, offset int) ([]model.Task, error)
+	ListByStatus(ctx context.Context, eventId int, status string, limit, offset int) ([]model.Task, error)
 }
 
-type service struct {
-	taskRepo       task.Repository
-	assignmentRepo task.AssignmentRepository
+type AssignmentRepository interface {
+	Create(ctx context.Context, assignment model.TaskAssignment) (int, error)
+	GetByTaskAndUser(ctx context.Context, taskId, userId int) (model.TaskAssignment, error)
+	Update(ctx context.Context, assignment model.TaskAssignment) error
+	Delete(ctx context.Context, id int) error
+	ListByTask(ctx context.Context, taskId, limit, offset int) ([]model.TaskAssignment, error)
+	ListByUser(ctx context.Context, userId, limit, offset int) ([]model.TaskAssignment, error)
+}
+
+type Service struct {
+	taskRepo       Repository
+	assignmentRepo AssignmentRepository
 	logger         *zap.SugaredLogger
 }
 
-// NewService creates a new task service
-func NewService(taskRepo task.Repository, assignmentRepo task.AssignmentRepository, logger *zap.SugaredLogger) Service {
-	return &service{
+func NewService(taskRepo Repository, assignmentRepo AssignmentRepository, logger *zap.SugaredLogger) Service {
+	return Service{
 		taskRepo:       taskRepo,
 		assignmentRepo: assignmentRepo,
 		logger:         logger,
 	}
 }
 
-// Create creates a new task
-func (s *service) Create(ctx context.Context, req model.TaskCreateRequest) (int, error) {
+func (s *Service) Create(ctx context.Context, req domain.TaskCreateRequest) (*domain.TaskResponse, error) {
 	task := model.Task{
 		EventId:     req.EventId,
+		ParentId:    req.ParentId,
 		Title:       req.Title,
 		Description: req.Description,
-		DueDate:     req.DueDate,
+		StoryPoints: req.StoryPoints,
 		Priority:    req.Priority,
-		Status:      model.TaskStatusPending,
-		CreatedBy:   req.CreatedBy,
+		Status:      string(domain.TaskStatusPending),
+		CreatedAt:   time.Now(),
 	}
 
 	id, err := s.taskRepo.Create(ctx, task)
 	if err != nil {
 		s.logger.Errorw("Failed to create task", "error", err, "eventId", req.EventId)
-		return uuid.Nil, fmt.Errorf("failed to create task: %w", err)
+		return nil, errors.WithMessage(err, "create task")
 	}
 
-	// Create task assignments if assignees are provided
-	if len(req.AssigneeIds) > 0 {
-		for _, assigneeId := range req.AssigneeIds {
-			assignment := model.TaskAssignment{
-				TaskId:     id,
-				UserId:     assigneeId,
-				AssignedAt: time.Now(),
-			}
+	if req.AssignedTo != nil {
+		assignment := model.TaskAssignment{
+			TaskId:     id,
+			UserId:     *req.AssignedTo,
+			AssignedAt: time.Now(),
+		}
 
-			_, err := s.assignmentRepo.Create(ctx, assignment)
-			if err != nil {
-				s.logger.Warnw("Failed to create task assignment", "error", err, "taskId", id, "userId", assigneeId)
-				// Continue even if one assignment fails
-			}
+		_, err := s.assignmentRepo.Create(ctx, assignment)
+		if err != nil {
+			s.logger.Warnw("Failed to create task assignment", "error", err, "taskId", id, "userId", req.AssignedTo)
+			// Continue even if one assignment fails
 		}
 	}
 
-	return id, nil
-}
-
-// GetById retrieves a task by Id
-func (s *service) GetById(ctx context.Context, id int) (model.TaskResponse, error) {
-	task, err := s.taskRepo.GetById(ctx, id)
-	if err != nil {
-		s.logger.Errorw("Failed to get task by Id", "error", err, "id", id)
-		return model.TaskResponse{}, fmt.Errorf("failed to get task: %w", err)
-	}
-
-	// Get task assignments
-	assignments, _, err := s.assignmentRepo.ListByTask(ctx, id, 100, 0)
-	if err != nil {
-		s.logger.Warnw("Failed to get task assignments", "error", err, "taskId", id)
-		// Continue even if we can't get assignments
-	}
-
-	// Extract assignee Ids
-	assigneeIds := make([]int, len(assignments))
-	for i, assignment := range assignments {
-		assigneeIds[i] = assignment.UserId
-	}
-
-	return model.TaskResponse{
-		Id:          task.Id,
-		EventId:     task.EventId,
+	return &domain.TaskResponse{
+		Id:          id,
+		AssignedTo:  req.AssignedTo,
+		ParentID:    task.ParentId,
 		Title:       task.Title,
 		Description: task.Description,
-		DueDate:     task.DueDate,
+		StoryPoints: task.StoryPoints,
 		Priority:    task.Priority,
-		Status:      task.Status,
-		CreatedBy:   task.CreatedBy,
+		Status:      domain.TaskStatus(task.Status),
 		CreatedAt:   task.CreatedAt,
-		UpdatedAt:   task.UpdatedAt,
-		AssigneeIds: assigneeIds,
 	}, nil
 }
 
-// Update updates a task
-func (s *service) Update(ctx context.Context, id int, req model.TaskUpdateRequest) error {
+func (s *Service) Update(ctx context.Context, id int, req domain.TaskUpdateRequest) error {
 	task, err := s.taskRepo.GetById(ctx, id)
 	if err != nil {
 		s.logger.Errorw("Failed to get task for update", "error", err, "id", id)
-		return errors.WithMessage(err, "")("failed to get task: %w", err)
+		return errors.WithMessage(err, "get task")
 	}
 
-	// Update fields if provided
 	if req.Title != nil {
 		task.Title = *req.Title
 	}
@@ -129,61 +103,52 @@ func (s *service) Update(ctx context.Context, id int, req model.TaskUpdateReques
 		task.Description = *req.Description
 	}
 
-	if req.DueDate != nil {
-		task.DueDate = req.DueDate
-	}
-
 	if req.Priority != nil {
-		task.Priority = *req.Priority
+		task.Priority = req.Priority
 	}
 
 	if req.Status != nil {
-		task.Status = *req.Status
+		task.Status = string(*req.Status)
 	}
 
 	if err := s.taskRepo.Update(ctx, task); err != nil {
 		s.logger.Errorw("Failed to update task", "error", err, "id", id)
-		return errors.WithMessage(err, "")("failed to update task: %w", err)
+		return errors.WithMessage(err, "update task")
 	}
 
-	// Update assignees if provided
-	if req.AssigneeIds != nil {
-		// Get current assignments
-		currentAssignments, _, err := s.assignmentRepo.ListByTask(ctx, id, 100, 0)
+	assignedTo := req.AssignedTo
+
+	if assignedTo != nil {
+		currentAssignments, err := s.assignmentRepo.ListByTask(ctx, id, 100, 0)
 		if err != nil {
 			s.logger.Warnw("Failed to get current task assignments", "error", err, "taskId", id)
 			// Continue even if we can't get current assignments
 		}
 
-		// Create a map of current assignee Ids for fast lookup
 		currentAssigneeMap := make(map[int]model.TaskAssignment)
 		for _, assignment := range currentAssignments {
 			currentAssigneeMap[assignment.UserId] = assignment
 		}
 
-		// Create new assignments
-		for _, assigneeId := range *req.AssigneeIds {
-			if _, exists := currentAssigneeMap[assigneeId]; !exists {
-				// Create new assignment
-				assignment := model.TaskAssignment{
-					TaskId:     id,
-					UserId:     assigneeId,
-					AssignedAt: time.Now(),
-				}
+		//for _, assigneeId := range *req.AssignedTo { // todo
 
-				_, err := s.assignmentRepo.Create(ctx, assignment)
-				if err != nil {
-					s.logger.Warnw("Failed to create task assignment", "error", err, "taskId", id, "userId", assigneeId)
-					// Continue even if one assignment fails
-				}
+		if _, exists := currentAssigneeMap[*assignedTo]; !exists {
+			assignment := model.TaskAssignment{
+				TaskId:     id,
+				UserId:     *assignedTo,
+				AssignedAt: time.Now(),
 			}
-			// Remove from the map to track which ones need to be deleted
-			delete(currentAssigneeMap, assigneeId)
-		}
 
-		// Delete assignments that are no longer needed
+			_, err := s.assignmentRepo.Create(ctx, assignment)
+			if err != nil {
+				s.logger.Warnw("Failed to create task assignment", "error", err, "taskId", id, "userId", assignedTo)
+				// Continue even if one assignment fails
+			}
+		}
+		delete(currentAssigneeMap, *assignedTo)
+
 		for userId, assignment := range currentAssigneeMap {
-			err := s.assignmentRepo.Delete(ctx, assignment.Id)
+			err := s.assignmentRepo.Delete(ctx, assignment.UserId)
 			if err != nil {
 				s.logger.Warnw("Failed to delete task assignment", "error", err, "taskId", id, "userId", userId)
 				// Continue even if one deletion fails
@@ -194,26 +159,16 @@ func (s *service) Update(ctx context.Context, id int, req model.TaskUpdateReques
 	return nil
 }
 
-// Delete deletes a task
-func (s *service) Delete(ctx context.Context, id int) error {
-	// First check if the task exists
-	_, err := s.taskRepo.GetById(ctx, id)
-	if err != nil {
-		s.logger.Errorw("Failed to get task for deletion", "error", err, "id", id)
-		return errors.WithMessage(err, "")("failed to get task: %w", err)
-	}
-
+func (s *Service) Delete(ctx context.Context, id int) error {
 	if err := s.taskRepo.Delete(ctx, id); err != nil {
 		s.logger.Errorw("Failed to delete task", "error", err, "id", id)
-		return errors.WithMessage(err, "")("failed to delete task: %w", err)
+		return errors.WithMessage(err, "delete task")
 	}
 
 	return nil
 }
 
-// ListByEvent retrieves a list of tasks for a specific event with pagination
-func (s *service) ListByEvent(ctx context.Context, eventId int, page, size int) (model.TasksResponse, error) {
-	// Set default pagination values if not provided
+func (s *Service) ListByEvent(ctx context.Context, eventId int, page, size int) (*domain.TasksResponse, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -222,65 +177,16 @@ func (s *service) ListByEvent(ctx context.Context, eventId int, page, size int) 
 	}
 
 	offset := (page - 1) * size
-	tasks, total, err := s.taskRepo.ListByEvent(ctx, eventId, size, offset)
+	tasks, err := s.taskRepo.ListByEvent(ctx, eventId, size, offset)
 	if err != nil {
 		s.logger.Errorw("Failed to list event tasks", "error", err, "eventId", eventId, "page", page, "size", size)
-		return model.TasksResponse{}, fmt.Errorf("failed to list event tasks: %w", err)
+		return nil, errors.WithMessage(err, "list event tasks")
 	}
 
-	// Convert to response objects
-	taskResponses := make([]model.TaskResponse, len(tasks))
-	for i, task := range tasks {
-		// Get task assignments
-		assignments, _, err := s.assignmentRepo.ListByTask(ctx, task.Id, 100, 0)
-		if err != nil {
-			s.logger.Warnw("Failed to get task assignments", "error", err, "taskId", task.Id)
-			// Continue even if we can't get assignments
-			taskResponses[i] = model.TaskResponse{
-				Id:          task.Id,
-				EventId:     task.EventId,
-				Title:       task.Title,
-				Description: task.Description,
-				DueDate:     task.DueDate,
-				Priority:    task.Priority,
-				Status:      task.Status,
-				CreatedBy:   task.CreatedBy,
-				CreatedAt:   task.CreatedAt,
-				UpdatedAt:   task.UpdatedAt,
-			}
-			continue
-		}
-
-		// Extract assignee Ids
-		assigneeIds := make([]int, len(assignments))
-		for j, assignment := range assignments {
-			assigneeIds[j] = assignment.UserId
-		}
-
-		taskResponses[i] = model.TaskResponse{
-			Id:          task.Id,
-			EventId:     task.EventId,
-			Title:       task.Title,
-			Description: task.Description,
-			DueDate:     task.DueDate,
-			Priority:    task.Priority,
-			Status:      task.Status,
-			CreatedBy:   task.CreatedBy,
-			CreatedAt:   task.CreatedAt,
-			UpdatedAt:   task.UpdatedAt,
-			AssigneeIds: assigneeIds,
-		}
-	}
-
-	return model.TasksResponse{
-		Tasks: taskResponses,
-		Total: total,
-	}, nil
+	return s.convertToTasksResponse(ctx, tasks), nil
 }
 
-// ListByUser retrieves a list of tasks assigned to a specific user with pagination
-func (s *service) ListByUser(ctx context.Context, userId int, page, size int) (model.TasksResponse, error) {
-	// Set default pagination values if not provided
+func (s *Service) ListByUser(ctx context.Context, userId int, page, size int) (*domain.TasksResponse, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -289,67 +195,31 @@ func (s *service) ListByUser(ctx context.Context, userId int, page, size int) (m
 	}
 
 	offset := (page - 1) * size
-	tasks, total, err := s.taskRepo.ListByUser(ctx, userId, size, offset)
+	tasks, err := s.taskRepo.ListByUser(ctx, userId, size, offset)
 	if err != nil {
 		s.logger.Errorw("Failed to list user tasks", "error", err, "userId", userId, "page", page, "size", size)
-		return model.TasksResponse{}, fmt.Errorf("failed to list user tasks: %w", err)
+		return nil, errors.WithMessage(err, "list user tasks")
 	}
 
-	// Convert to response objects
-	taskResponses := make([]model.TaskResponse, len(tasks))
-	for i, task := range tasks {
-		// Get task assignments for this task
-		assignments, _, err := s.assignmentRepo.ListByTask(ctx, task.Id, 100, 0)
-		if err != nil {
-			s.logger.Warnw("Failed to get task assignments", "error", err, "taskId", task.Id)
-			// Continue even if we can't get assignments
-		}
-
-		// Extract assignee Ids
-		assigneeIds := make([]int, len(assignments))
-		for j, assignment := range assignments {
-			assigneeIds[j] = assignment.UserId
-		}
-
-		taskResponses[i] = model.TaskResponse{
-			Id:          task.Id,
-			EventId:     task.EventId,
-			Title:       task.Title,
-			Description: task.Description,
-			DueDate:     task.DueDate,
-			Priority:    task.Priority,
-			Status:      task.Status,
-			CreatedBy:   task.CreatedBy,
-			CreatedAt:   task.CreatedAt,
-			UpdatedAt:   task.UpdatedAt,
-			AssigneeIds: assigneeIds,
-		}
-	}
-
-	return model.TasksResponse{
-		Tasks: taskResponses,
-		Total: total,
-	}, nil
+	return s.convertToTasksResponse(ctx, tasks), nil
 }
 
-// UpdateStatus updates the status of a task
-func (s *service) UpdateStatus(ctx context.Context, id int, status model.TaskStatus) error {
+func (s *Service) UpdateStatus(ctx context.Context, id int, status domain.TaskStatus) error {
 	task, err := s.taskRepo.GetById(ctx, id)
 	if err != nil {
 		s.logger.Errorw("Failed to get task for status update", "error", err, "id", id)
-		return errors.WithMessage(err, "")("failed to get task: %w", err)
+		return errors.WithMessage(err, "get task")
 	}
 
-	task.Status = status
+	task.Status = string(status)
 
 	if err := s.taskRepo.Update(ctx, task); err != nil {
 		s.logger.Errorw("Failed to update task status", "error", err, "id", id, "status", status)
-		return errors.WithMessage(err, "")("failed to update task status: %w", err)
+		return errors.WithMessage(err, "update task status")
 	}
 
-	// If task is completed, update all assignments' completed_at
-	if status == model.TaskStatusCompleted {
-		assignments, _, err := s.assignmentRepo.ListByTask(ctx, id, 100, 0)
+	if status == domain.TaskStatusCompleted {
+		assignments, err := s.assignmentRepo.ListByTask(ctx, id, 100, 0)
 		if err != nil {
 			s.logger.Warnw("Failed to get task assignments for completion", "error", err, "taskId", id)
 			// Continue even if we can't get assignments
@@ -359,7 +229,7 @@ func (s *service) UpdateStatus(ctx context.Context, id int, status model.TaskSta
 				assignment.CompletedAt = &now
 				err := s.assignmentRepo.Update(ctx, assignment)
 				if err != nil {
-					s.logger.Warnw("Failed to update assignment completion", "error", err, "assignmentId", assignment.Id)
+					s.logger.Warnw("Failed to update assignment completion", "error", err, "assignmentId", assignment.TaskAssignmentID)
 					// Continue even if one update fails
 				}
 			}
@@ -369,46 +239,34 @@ func (s *service) UpdateStatus(ctx context.Context, id int, status model.TaskSta
 	return nil
 }
 
-// GetEventSummary retrieves a summary of tasks for a specific event
-func (s *service) GetEventSummary(ctx context.Context, eventId int) (model.TaskEventSummary, error) {
-	var summary model.TaskEventSummary
-	summary.EventId = eventId
+func (s *Service) convertToTasksResponse(ctx context.Context, tasks []model.Task) *domain.TasksResponse {
+	taskResponses := make([]domain.TaskResponse, len(tasks))
+	for i, task := range tasks {
+		assignments, err := s.assignmentRepo.ListByTask(ctx, task.TaskId, 100, 0)
+		if err != nil {
+			s.logger.Warnw("Failed to get task assignments", "error", err, "taskId", task.TaskId)
+			// Continue even if we can't get assignments
+		}
 
-	// Get all tasks for the event
-	tasks, _, err := s.taskRepo.ListByEvent(ctx, eventId, 1000, 0)
-	if err != nil {
-		s.logger.Errorw("Failed to list event tasks for summary", "error", err, "eventId", eventId)
-		return summary, fmt.Errorf("failed to get event tasks: %w", err)
-	}
+		assigneeIds := make([]int, len(assignments))
+		for j, assignment := range assignments {
+			assigneeIds[j] = assignment.UserId
+		}
 
-	// Count tasks by status
-	totalTasks := len(tasks)
-	completedTasks := 0
-	inProgressTasks := 0
-	pendingTasks := 0
-
-	for _, task := range tasks {
-		switch task.Status {
-		case model.TaskStatusCompleted:
-			completedTasks++
-		case model.TaskStatusInProgress:
-			inProgressTasks++
-		case model.TaskStatusPending:
-			pendingTasks++
+		taskResponses[i] = domain.TaskResponse{
+			Id:          task.TaskId,
+			EventId:     task.EventId,
+			Title:       task.Title,
+			Description: task.Description,
+			Priority:    task.Priority,
+			Status:      domain.TaskStatus(task.Status),
+			CreatedAt:   task.CreatedAt,
+			AssignedTo:  &assigneeIds[0],
 		}
 	}
 
-	// Calculate completion percentage
-	var completionPercentage float64
-	if totalTasks > 0 {
-		completionPercentage = float64(completedTasks) / float64(totalTasks) * 100
+	return &domain.TasksResponse{
+		Tasks: taskResponses,
+		Total: len(tasks),
 	}
-
-	summary.TotalTasks = totalTasks
-	summary.CompletedTasks = completedTasks
-	summary.InProgressTasks = inProgressTasks
-	summary.PendingTasks = pendingTasks
-	summary.CompletionPercentage = completionPercentage
-
-	return summary, nil
 }

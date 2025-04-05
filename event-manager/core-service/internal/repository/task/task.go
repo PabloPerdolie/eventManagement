@@ -44,8 +44,8 @@ func (r *Task) Create(ctx context.Context, task model.Task) (int, error) {
 	err := r.db.QueryRowContext(
 		ctx,
 		query,
-		task.EventID,
-		task.ParentID,
+		task.EventId,
+		task.ParentId,
 		task.Title,
 		task.Description,
 		task.StoryPoints,
@@ -94,8 +94,8 @@ func (r *Task) Update(ctx context.Context, task model.Task) error {
 		task.StoryPoints,
 		task.Priority,
 		task.Status,
-		task.ParentID,
-		task.TaskID,
+		task.ParentId,
+		task.TaskId,
 	)
 	if err != nil {
 		return errors.WithMessage(err, "update task")
@@ -115,15 +115,8 @@ func (r *Task) Delete(ctx context.Context, id int) error {
 	return nil
 }
 
-func (r *Task) ListByEvent(ctx context.Context, eventId int, limit, offset int) ([]model.Task, int, error) {
+func (r *Task) ListByEvent(ctx context.Context, eventId, limit, offset int) ([]model.Task, error) {
 	var tasks []model.Task
-	var total int
-
-	countQuery := `SELECT COUNT(*) FROM tasks WHERE event_id = $1`
-	err := r.db.GetContext(ctx, &total, countQuery, eventId)
-	if err != nil {
-		return nil, 0, errors.WithMessage(err, "count event tasks")
-	}
 
 	query := `
         SELECT task_id, event_id, parent_id, title, description, story_points, priority, status, created_at
@@ -133,28 +126,16 @@ func (r *Task) ListByEvent(ctx context.Context, eventId int, limit, offset int) 
         LIMIT $2 OFFSET $3
     `
 
-	err = r.db.SelectContext(ctx, &tasks, query, eventId, limit, offset)
+	err := r.db.SelectContext(ctx, &tasks, query, eventId, limit, offset)
 	if err != nil {
-		return nil, 0, errors.WithMessage(err, "list event tasks")
+		return nil, errors.WithMessage(err, "list event tasks")
 	}
 
-	return tasks, total, nil
+	return tasks, nil
 }
 
-func (r *Task) ListByUser(ctx context.Context, userId int, limit, offset int) ([]model.Task, int, error) {
+func (r *Task) ListByUser(ctx context.Context, userId, limit, offset int) ([]model.Task, error) {
 	var tasks []model.Task
-	var total int
-
-	countQuery := `
-        SELECT COUNT(DISTINCT t.task_id)
-        FROM tasks t
-        JOIN task_assignments ta ON t.task_id = ta.task_id
-        WHERE ta.user_id = $1
-    `
-	err := r.db.GetContext(ctx, &total, countQuery, userId)
-	if err != nil {
-		return nil, 0, errors.WithMessage(err, "count user tasks")
-	}
 
 	query := `
         SELECT DISTINCT t.task_id, t.event_id, t.parent_id, t.title, t.description, t.story_points, t.priority, t.status, t.created_at
@@ -165,23 +146,16 @@ func (r *Task) ListByUser(ctx context.Context, userId int, limit, offset int) ([
         LIMIT $2 OFFSET $3
     `
 
-	err = r.db.SelectContext(ctx, &tasks, query, userId, limit, offset)
+	err := r.db.SelectContext(ctx, &tasks, query, userId, limit, offset)
 	if err != nil {
-		return nil, 0, errors.WithMessage(err, "list user tasks")
+		return nil, errors.WithMessage(err, "list user tasks")
 	}
 
-	return tasks, total, nil
+	return tasks, nil
 }
 
-func (r *Task) ListByStatus(ctx context.Context, eventId int, status string, limit, offset int) ([]model.Task, int, error) {
+func (r *Task) ListByStatus(ctx context.Context, eventId int, status string, limit, offset int) ([]model.Task, error) {
 	var tasks []model.Task
-	var total int
-
-	countQuery := `SELECT COUNT(*) FROM tasks WHERE event_id = $1 AND status = $2`
-	err := r.db.GetContext(ctx, &total, countQuery, eventId, status)
-	if err != nil {
-		return nil, 0, errors.WithMessage(err, "count event tasks by status")
-	}
 
 	query := `
         SELECT task_id, event_id, parent_id, title, description, story_points, priority, status, created_at
@@ -191,10 +165,10 @@ func (r *Task) ListByStatus(ctx context.Context, eventId int, status string, lim
         LIMIT $3 OFFSET $4
     `
 
-	err = r.db.SelectContext(ctx, &tasks, query, eventId, status, limit, offset)
+	err := r.db.SelectContext(ctx, &tasks, query, eventId, status, limit, offset)
 	if err != nil {
-		return nil, 0, errors.WithMessage(err, "list event tasks by status")
+		return nil, errors.WithMessage(err, "list event tasks by status")
 	}
 
-	return tasks, total, nil
+	return tasks, nil
 }

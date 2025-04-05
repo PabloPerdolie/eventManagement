@@ -4,6 +4,7 @@ import "time"
 
 type TaskAssignmentCreateRequest struct {
 	UserId int `json:"user_id" binding:"required"`
+	TaskId int `json:"task_id" binging:"required"`
 }
 
 type TaskAssignmentUpdateRequest struct {

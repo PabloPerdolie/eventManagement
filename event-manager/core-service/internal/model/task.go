@@ -5,9 +5,9 @@ import (
 )
 
 type Task struct {
-	TaskID      int       `db:"task_id"`
-	EventID     int       `db:"event_id"`
-	ParentID    *int      `db:"parent_id"`
+	TaskId      int       `db:"task_id"`
+	EventId     int       `db:"event_id"`
+	ParentId    *int      `db:"parent_id"`
 	Title       string    `db:"title"`
 	Description string    `db:"description"`
 	StoryPoints *int      `db:"story_points"`
@@ -18,8 +18,8 @@ type Task struct {
 
 type TaskAssignment struct {
 	TaskAssignmentID int        `db:"task_assignment_id"`
-	TaskID           int        `db:"task_id"`
-	UserID           int        `db:"user_id"`
+	TaskId           int        `db:"task_id"`
+	UserId           int        `db:"user_id"`
 	AssignedAt       time.Time  `db:"assigned_at"`
 	CompletedAt      *time.Time `db:"completed_at"`
 }

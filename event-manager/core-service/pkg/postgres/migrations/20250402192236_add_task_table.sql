@@ -24,7 +24,11 @@ CREATE TABLE task_assignment
     FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE
 );
 
+CREATE UNIQUE INDEX task_user_idx ON task_assignment (task_id, user_id);
+
 -- +goose Down
+DROP INDEX task_user_idx;
+
 DROP TABLE task_assignment;
 
 DROP TABLE tasks;
