@@ -140,7 +140,7 @@ func (r Task) ListByUser(ctx context.Context, userId, limit, offset int) ([]mode
 	query := `
         SELECT DISTINCT t.task_id, t.event_id, t.parent_id, t.title, t.description, t.story_points, t.priority, t.status, t.created_at
         FROM tasks t
-        JOIN task_assignments ta ON t.task_id = ta.task_id
+        JOIN task_assignment ta ON t.task_id = ta.task_id
         WHERE ta.user_id = $1
         ORDER BY t.created_at DESC
         LIMIT $2 OFFSET $3

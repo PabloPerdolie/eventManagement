@@ -28,7 +28,7 @@ COPY --from=builder /app/core-service .
 COPY --from=builder /app/.env .
 
 # Экспортируем порт
-EXPOSE 8082
+EXPOSE 8080
 
 # Команда запуска приложения
 CMD ["./core-service"]

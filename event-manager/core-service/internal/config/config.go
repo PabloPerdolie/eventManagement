@@ -15,7 +15,7 @@ type Config struct {
 func New() (*Config, error) {
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8083"
+		port = "8080"
 	}
 
 	dbURL := os.Getenv("DATABASE_URL")

@@ -27,10 +27,11 @@ func SetupRoutes(router *gin.Engine, controllers *Controllers) {
 			events.POST("", controllers.EventCtrl.Create)
 			//events.GET("/:id", controllers.EventCtrl.GetById)
 			//events.PUT("/:id", controllers.EventCtrl.Update)
-			events.DELETE("/:id", controllers.EventCtrl.Delete)
+			events.DELETE("/:event_id", controllers.EventCtrl.Delete)
+			events.GET("/:event_id", controllers.EventCtrl.EventSummary)
 
 			// Маршруты участников событий
-			participants := events.Group("/:id/participants")
+			participants := events.Group("/:event_id/participants")
 			{
 				//participants.GET("", controllers.EventParticipantCtrl.ListByEvent)
 				participants.POST("", controllers.EventParticipantCtrl.Create)
@@ -46,8 +47,8 @@ func SetupRoutes(router *gin.Engine, controllers *Controllers) {
 			tasks.GET("", controllers.TaskCtrl.List)
 			tasks.POST("", controllers.TaskCtrl.Create)
 			//tasks.GET("/:id", controllers.TaskCtrl.GetById)
-			tasks.PUT("/:id", controllers.TaskCtrl.Update)
-			tasks.DELETE("/:id", controllers.TaskCtrl.Delete)
+			tasks.PUT("/:task_id", controllers.TaskCtrl.Update)
+			tasks.DELETE("/:task_id", controllers.TaskCtrl.Delete)
 
 			// Маршруты назначений задач
 			//assignments := tasks.Group("/:id/assignments")

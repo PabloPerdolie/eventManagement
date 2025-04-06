@@ -34,7 +34,7 @@ func (r TaskAssignment) Create(ctx context.Context, assignment model.TaskAssignm
 	assignment.AssignedAt = time.Now()
 
 	query := `
-        INSERT INTO task_assignments (task_id, user_id, assigned_at)
+        INSERT INTO task_assignment (task_id, user_id, assigned_at)
         VALUES ($1, $2, $3)
         RETURNING task_assignment_id
     `
@@ -59,7 +59,7 @@ func (r TaskAssignment) GetByTaskAndUser(ctx context.Context, taskId, userId int
 
 	query := `
         SELECT task_assignment_id, task_id, user_id, assigned_at, completed_at
-        FROM task_assignments
+        FROM task_assignment
         WHERE task_id = $1 AND user_id = $2
     `
 
@@ -76,7 +76,7 @@ func (r TaskAssignment) GetByTaskAndUser(ctx context.Context, taskId, userId int
 
 func (r TaskAssignment) Update(ctx context.Context, assignment model.TaskAssignment) error {
 	query := `
-        UPDATE task_assignments
+        UPDATE task_assignment
         SET completed_at = $1
         WHERE task_id = $2
     `
@@ -95,7 +95,7 @@ func (r TaskAssignment) Update(ctx context.Context, assignment model.TaskAssignm
 }
 
 func (r TaskAssignment) Delete(ctx context.Context, id int) error {
-	query := `DELETE FROM task_assignments WHERE user_id = $1`
+	query := `DELETE FROM task_assignment WHERE user_id = $1`
 
 	_, err := r.db.ExecContext(ctx, query, id)
 	if err != nil {
@@ -110,7 +110,7 @@ func (r TaskAssignment) ListByTask(ctx context.Context, taskId, limit, offset in
 
 	query := `
         SELECT task_assignment_id, task_id, user_id, assigned_at, completed_at
-        FROM task_assignments
+        FROM task_assignment
         WHERE task_id = $1
         ORDER BY assigned_at DESC
         LIMIT $2 OFFSET $3
@@ -129,7 +129,7 @@ func (r TaskAssignment) ListByUser(ctx context.Context, userId, limit, offset in
 
 	query := `
         SELECT task_assignment_id, task_id, user_id, assigned_at, completed_at
-        FROM task_assignments
+        FROM task_assignment
         WHERE user_id = $1
         ORDER BY assigned_at DESC
         LIMIT $2 OFFSET $3

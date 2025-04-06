@@ -38,7 +38,7 @@ func NewEvent(commonService EventCommonService, service EventService, logger *za
 }
 
 func (h *EventController) Create(c *gin.Context) {
-	idStr := c.Param("user_id")
+	idStr := c.Query("user_id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		h.logger.Errorw("Invalid user id", "error", err, "user_id", idStr)
@@ -119,4 +119,23 @@ func (h *EventController) List(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, events)
+}
+
+func (h *EventController) EventSummary(c *gin.Context) {
+	idStr := c.Param("event_id")
+	eventId, err := strconv.Atoi(idStr)
+	if err != nil {
+		h.logger.Errorw("Invalid event ID", "error", err, "id", idStr)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid event ID"})
+		return
+	}
+
+	summary, err := h.commonService.GetEventSummary(c.Request.Context(), eventId)
+	if err != nil {
+		h.logger.Errorw("Failed to get event summary", "error", err, "event_id", eventId)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, summary)
 }

@@ -22,7 +22,7 @@ import (
 // @title Event Management Core Service API
 // @version 1.0
 // @description API for managing events, users, tasks and expenses
-// @host localhost:8082
+// @host localhost:8080
 // @BasePath /api/v1
 func main() {
 	logger, _ := zap.NewProduction()

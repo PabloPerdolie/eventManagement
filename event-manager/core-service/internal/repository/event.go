@@ -148,7 +148,7 @@ func (r Event) ListByParticipant(ctx context.Context, participantID, limit, offs
 	query := `
 		SELECT e.event_id, e.organizer_id, e.title, e.description, e.start_date, e.end_date, e.location, e.status, e.created_at
 		FROM events e
-		JOIN event_participants ep ON e.event_id = ep.event_id
+		JOIN event_participant ep ON e.event_id = ep.event_id
 		WHERE ep.user_id = $1
 		ORDER BY e.start_date DESC
 		LIMIT $2 OFFSET $3

@@ -242,17 +242,6 @@ func (s Service) UpdateStatus(ctx context.Context, id int, status domain.TaskSta
 func (s Service) convertToTasksResponse(ctx context.Context, tasks []model.Task) *domain.TasksResponse {
 	taskResponses := make([]domain.TaskResponse, len(tasks))
 	for i, task := range tasks {
-		assignments, err := s.assignmentRepo.ListByTask(ctx, task.TaskId, 100, 0)
-		if err != nil {
-			s.logger.Warnw("Failed to get task assignments", "error", err, "taskId", task.TaskId)
-			// Continue even if we can't get assignments
-		}
-
-		assigneeIds := make([]int, len(assignments))
-		for j, assignment := range assignments {
-			assigneeIds[j] = assignment.UserId
-		}
-
 		taskResponses[i] = domain.TaskResponse{
 			Id:          task.TaskId,
 			EventId:     task.EventId,
@@ -261,8 +250,20 @@ func (s Service) convertToTasksResponse(ctx context.Context, tasks []model.Task)
 			Priority:    task.Priority,
 			Status:      domain.TaskStatus(task.Status),
 			CreatedAt:   task.CreatedAt,
-			AssignedTo:  &assigneeIds[0],
 		}
+
+		assignments, err := s.assignmentRepo.ListByTask(ctx, task.TaskId, 100, 0)
+		if err != nil || len(assignments) == 0 {
+			s.logger.Warnw("Failed to get task assignments", "error", err, "taskId", task.TaskId)
+			continue
+		}
+
+		assigneeIds := make([]int, len(assignments))
+		for j, assignment := range assignments {
+			assigneeIds[j] = assignment.UserId
+		}
+
+		taskResponses[i].AssignedTo = &assigneeIds[0]
 	}
 
 	return &domain.TasksResponse{
