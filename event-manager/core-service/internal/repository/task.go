@@ -1,4 +1,4 @@
-package task
+package repository
 
 import (
 	"context"
@@ -23,13 +23,13 @@ type Task struct {
 	db *sqlx.DB
 }
 
-func NewRepository(db *sqlx.DB) Task {
+func NewTask(db *sqlx.DB) Task {
 	return Task{
 		db: db,
 	}
 }
 
-func (r *Task) Create(ctx context.Context, task model.Task) (int, error) {
+func (r Task) Create(ctx context.Context, task model.Task) (int, error) {
 	if task.Status == "" {
 		task.Status = "pending"
 	}
@@ -60,7 +60,7 @@ func (r *Task) Create(ctx context.Context, task model.Task) (int, error) {
 	return taskID, nil
 }
 
-func (r *Task) GetById(ctx context.Context, id int) (model.Task, error) {
+func (r Task) GetById(ctx context.Context, id int) (model.Task, error) {
 	var task model.Task
 	query := `
         SELECT task_id, event_id, parent_id, title, description, story_points, priority, status, created_at
@@ -79,7 +79,7 @@ func (r *Task) GetById(ctx context.Context, id int) (model.Task, error) {
 	return task, nil
 }
 
-func (r *Task) Update(ctx context.Context, task model.Task) error {
+func (r Task) Update(ctx context.Context, task model.Task) error {
 	query := `
         UPDATE tasks
         SET title = $1, description = $2, story_points = $3, priority = $4, status = $5, parent_id = $6
@@ -104,7 +104,7 @@ func (r *Task) Update(ctx context.Context, task model.Task) error {
 	return nil
 }
 
-func (r *Task) Delete(ctx context.Context, id int) error {
+func (r Task) Delete(ctx context.Context, id int) error {
 	query := `DELETE FROM tasks WHERE task_id = $1`
 
 	_, err := r.db.ExecContext(ctx, query, id)
@@ -115,7 +115,7 @@ func (r *Task) Delete(ctx context.Context, id int) error {
 	return nil
 }
 
-func (r *Task) ListByEvent(ctx context.Context, eventId, limit, offset int) ([]model.Task, error) {
+func (r Task) ListByEvent(ctx context.Context, eventId, limit, offset int) ([]model.Task, error) {
 	var tasks []model.Task
 
 	query := `
@@ -134,7 +134,7 @@ func (r *Task) ListByEvent(ctx context.Context, eventId, limit, offset int) ([]m
 	return tasks, nil
 }
 
-func (r *Task) ListByUser(ctx context.Context, userId, limit, offset int) ([]model.Task, error) {
+func (r Task) ListByUser(ctx context.Context, userId, limit, offset int) ([]model.Task, error) {
 	var tasks []model.Task
 
 	query := `
@@ -154,7 +154,7 @@ func (r *Task) ListByUser(ctx context.Context, userId, limit, offset int) ([]mod
 	return tasks, nil
 }
 
-func (r *Task) ListByStatus(ctx context.Context, eventId int, status string, limit, offset int) ([]model.Task, error) {
+func (r Task) ListByStatus(ctx context.Context, eventId int, status string, limit, offset int) ([]model.Task, error) {
 	var tasks []model.Task
 
 	query := `

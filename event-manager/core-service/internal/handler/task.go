@@ -1,50 +1,40 @@
-package task
+package handler
 
 import (
+	"context"
+	"github.com/PabloPerdolie/event-manager/core-service/internal/domain"
 	"net/http"
 	"strconv"
 
-	"github.com/PabloPerdolie/event-manager/core-service/internal/model"
-	"github.com/PabloPerdolie/event-manager/core-service/internal/service/task"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
-// Handler handles task-related HTTP requests
-type Handler interface {
-	Create(c *gin.Context)
-	GetById(c *gin.Context)
-	Update(c *gin.Context)
-	Delete(c *gin.Context)
-	List(c *gin.Context)
+type TaskService interface {
+	Create(ctx context.Context, req domain.TaskCreateRequest) (*domain.TaskResponse, error)
+	Update(ctx context.Context, id int, req domain.TaskUpdateRequest) error
+	Delete(ctx context.Context, id int) error
+	ListByEvent(ctx context.Context, eventId int, page, size int) (*domain.TasksResponse, error)
+	ListByUser(ctx context.Context, userId int, page, size int) (*domain.TasksResponse, error)
+	UpdateStatus(ctx context.Context, id int, status domain.TaskStatus) error
 }
-
-type handler struct {
-	service task.Service
+type TaskController struct {
+	service TaskService
 	logger  *zap.SugaredLogger
 }
 
-// NewHandler creates a new task handler
-func NewHandler(service task.Service, logger *zap.SugaredLogger) Handler {
-	return &handler{
+func NewTask(service TaskService, logger *zap.SugaredLogger) TaskController {
+	return TaskController{
 		service: service,
 		logger:  logger,
 	}
 }
 
-// Create handles creating a new task
-func (h *handler) Create(c *gin.Context) {
-	var req model.TaskCreateRequest
+func (h *TaskController) Create(c *gin.Context) {
+	var req domain.TaskCreateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		h.logger.Errorw("Failed to bind request", "error", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	// Validate request
-	if req.Title == "" || req.EventId == uuid.Nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "title and event Id are required"})
 		return
 	}
 
@@ -58,37 +48,16 @@ func (h *handler) Create(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"id": id})
 }
 
-// GetById handles getting a task by Id
-func (h *handler) GetById(c *gin.Context) {
-	idStr := c.Param("id")
-	id, err := uuid.Parse(idStr)
+func (h *TaskController) Update(c *gin.Context) {
+	idStr := c.Param("task_id")
+	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		h.logger.Errorw("Invalid task Id", "error", err, "id", idStr)
+		h.logger.Errorw("Invalid task Id", "error", err, "task_id", idStr)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid task Id"})
 		return
 	}
 
-	task, err := h.service.GetById(c.Request.Context(), id)
-	if err != nil {
-		h.logger.Errorw("Failed to get task", "error", err, "id", id)
-		c.JSON(http.StatusNotFound, gin.H{"error": "task not found"})
-		return
-	}
-
-	c.JSON(http.StatusOK, task)
-}
-
-// Update handles updating a task
-func (h *handler) Update(c *gin.Context) {
-	idStr := c.Param("id")
-	id, err := uuid.Parse(idStr)
-	if err != nil {
-		h.logger.Errorw("Invalid task Id", "error", err, "id", idStr)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid task Id"})
-		return
-	}
-
-	var req model.TaskUpdateRequest
+	var req domain.TaskUpdateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		h.logger.Errorw("Failed to bind request", "error", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -104,12 +73,11 @@ func (h *handler) Update(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
-// Delete handles deleting a task
-func (h *handler) Delete(c *gin.Context) {
-	idStr := c.Param("id")
-	id, err := uuid.Parse(idStr)
+func (h *TaskController) Delete(c *gin.Context) {
+	idStr := c.Param("task_id")
+	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		h.logger.Errorw("Invalid task Id", "error", err, "id", idStr)
+		h.logger.Errorw("Invalid task Id", "error", err, "task_id", idStr)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid task Id"})
 		return
 	}
@@ -123,18 +91,16 @@ func (h *handler) Delete(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
-// List handles listing tasks with pagination and filtering
-func (h *handler) List(c *gin.Context) {
+func (h *TaskController) List(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	size, _ := strconv.Atoi(c.DefaultQuery("size", "10"))
 
-	// Get optional filters
 	eventIdStr := c.Query("event_id")
 	userIdStr := c.Query("user_id")
 
 	var eventId *int
 	if eventIdStr != "" {
-		parsed, err := uuid.Parse(eventIdStr)
+		parsed, err := strconv.Atoi(eventIdStr)
 		if err == nil {
 			eventId = &parsed
 		} else {
@@ -144,7 +110,7 @@ func (h *handler) List(c *gin.Context) {
 
 	var userId *int
 	if userIdStr != "" {
-		parsed, err := uuid.Parse(userIdStr)
+		parsed, err := strconv.Atoi(userIdStr)
 		if err == nil {
 			userId = &parsed
 		} else {
@@ -159,17 +125,16 @@ func (h *handler) List(c *gin.Context) {
 		size = 10
 	}
 
-	var tasks model.TasksResponse
+	var tasks *domain.TasksResponse
 	var err error
 
-	// Apply filters if provided
 	if eventId != nil {
 		tasks, err = h.service.ListByEvent(c.Request.Context(), *eventId, page, size)
 	} else if userId != nil {
 		tasks, err = h.service.ListByUser(c.Request.Context(), *userId, page, size)
 	} else {
 		// Default to all tasks (for admin purposes)
-		tasks, err = h.service.List(c.Request.Context(), page, size)
+		//tasks, err = h.service.List(c.Request.Context(), page, size)
 	}
 
 	if err != nil {

@@ -1,4 +1,4 @@
-package task
+package repository
 
 import (
 	"context"
@@ -30,7 +30,7 @@ func NewTaskAssignment(db *sqlx.DB) TaskAssignment {
 	}
 }
 
-func (r *TaskAssignment) Create(ctx context.Context, assignment model.TaskAssignment) (int, error) {
+func (r TaskAssignment) Create(ctx context.Context, assignment model.TaskAssignment) (int, error) {
 	assignment.AssignedAt = time.Now()
 
 	query := `
@@ -54,7 +54,7 @@ func (r *TaskAssignment) Create(ctx context.Context, assignment model.TaskAssign
 	return assignmentID, nil
 }
 
-func (r *TaskAssignment) GetByTaskAndUser(ctx context.Context, taskId, userId int) (model.TaskAssignment, error) {
+func (r TaskAssignment) GetByTaskAndUser(ctx context.Context, taskId, userId int) (model.TaskAssignment, error) {
 	var assignment model.TaskAssignment
 
 	query := `
@@ -74,7 +74,7 @@ func (r *TaskAssignment) GetByTaskAndUser(ctx context.Context, taskId, userId in
 	return assignment, nil
 }
 
-func (r *TaskAssignment) Update(ctx context.Context, assignment model.TaskAssignment) error {
+func (r TaskAssignment) Update(ctx context.Context, assignment model.TaskAssignment) error {
 	query := `
         UPDATE task_assignments
         SET completed_at = $1
@@ -94,7 +94,7 @@ func (r *TaskAssignment) Update(ctx context.Context, assignment model.TaskAssign
 	return nil
 }
 
-func (r *TaskAssignment) Delete(ctx context.Context, id int) error {
+func (r TaskAssignment) Delete(ctx context.Context, id int) error {
 	query := `DELETE FROM task_assignments WHERE user_id = $1`
 
 	_, err := r.db.ExecContext(ctx, query, id)
@@ -105,7 +105,7 @@ func (r *TaskAssignment) Delete(ctx context.Context, id int) error {
 	return nil
 }
 
-func (r *TaskAssignment) ListByTask(ctx context.Context, taskId, limit, offset int) ([]model.TaskAssignment, error) {
+func (r TaskAssignment) ListByTask(ctx context.Context, taskId, limit, offset int) ([]model.TaskAssignment, error) {
 	var assignments []model.TaskAssignment
 
 	query := `
@@ -124,7 +124,7 @@ func (r *TaskAssignment) ListByTask(ctx context.Context, taskId, limit, offset i
 	return assignments, nil
 }
 
-func (r *TaskAssignment) ListByUser(ctx context.Context, userId, limit, offset int) ([]model.TaskAssignment, error) {
+func (r TaskAssignment) ListByUser(ctx context.Context, userId, limit, offset int) ([]model.TaskAssignment, error) {
 	var assignments []model.TaskAssignment
 
 	query := `

@@ -25,6 +25,8 @@ CREATE TABLE event_participant
     FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE
 );
 
+CREATE UNIQUE INDEX event_user_idx ON event_participant (event_id, user_id);
+
 -- +goose Down
 DROP TABLE event_participant;
 

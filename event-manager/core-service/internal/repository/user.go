@@ -9,17 +9,17 @@ import (
 	"github.com/pkg/errors"
 )
 
-type PostgresRepository struct {
+type User struct {
 	db *sqlx.DB
 }
 
-func NewPostgresRepository(db *sqlx.DB) *PostgresRepository {
-	return &PostgresRepository{
+func NewUser(db *sqlx.DB) User {
+	return User{
 		db: db,
 	}
 }
 
-func (r *PostgresRepository) GetUserById(ctx context.Context, id int) (*model.User, error) {
+func (r User) GetUserById(ctx context.Context, id int) (*model.User, error) {
 	query := `
 		SELECT user_id, username, password_hash, email, is_active, is_deleted, role, created_at
 		FROM users
@@ -46,7 +46,7 @@ func (r *PostgresRepository) GetUserById(ctx context.Context, id int) (*model.Us
 	return &user, nil
 }
 
-func (r *PostgresRepository) ListUsers(ctx context.Context, limit, offset int) ([]model.User, int, error) {
+func (r User) ListUsers(ctx context.Context, limit, offset int) ([]model.User, int, error) {
 	countQuery := `SELECT COUNT(*) FROM users WHERE is_deleted = FALSE`
 	var total int
 	err := r.db.QueryRowContext(ctx, countQuery).Scan(&total)

@@ -36,7 +36,7 @@ func NewService(eventRepo EventRepo, participantRepo EventParticipantRepo, logge
 	}
 }
 
-func (s *Service) Create(ctx context.Context, userId int, req domain.EventCreateRequest) (int, error) {
+func (s Service) Create(ctx context.Context, userId int, req domain.EventCreateRequest) (int, error) {
 	event := model.Event{
 		Title:       req.Title,
 		Description: req.Description,
@@ -68,7 +68,7 @@ func (s *Service) Create(ctx context.Context, userId int, req domain.EventCreate
 	return id, nil
 }
 
-func (s *Service) GetById(ctx context.Context, id int) (*domain.EventResponse, error) {
+func (s Service) GetById(ctx context.Context, id int) (*domain.EventResponse, error) {
 	event, err := s.eventRepo.GetById(ctx, id)
 	if err != nil {
 		s.logger.Errorw("Failed to get event by Id", "error", err, "id", id)
@@ -87,7 +87,7 @@ func (s *Service) GetById(ctx context.Context, id int) (*domain.EventResponse, e
 	}, nil
 }
 
-func (s *Service) Update(ctx context.Context, id int, req domain.EventUpdateRequest) error {
+func (s Service) Update(ctx context.Context, id int, req domain.EventUpdateRequest) error {
 	event, err := s.eventRepo.GetById(ctx, id)
 	if err != nil {
 		s.logger.Errorw("Failed to get event for update", "error", err, "id", id)
@@ -122,7 +122,7 @@ func (s *Service) Update(ctx context.Context, id int, req domain.EventUpdateRequ
 	return nil
 }
 
-func (s *Service) Delete(ctx context.Context, id int) error {
+func (s Service) Delete(ctx context.Context, id int) error {
 	_, err := s.eventRepo.GetById(ctx, id)
 	if err != nil {
 		s.logger.Errorw("Failed to get event for deletion", "error", err, "id", id)
@@ -137,7 +137,7 @@ func (s *Service) Delete(ctx context.Context, id int) error {
 	return nil
 }
 
-func (s *Service) List(ctx context.Context, page, size int) (*domain.EventsResponse, error) {
+func (s Service) List(ctx context.Context, page, size int) (*domain.EventsResponse, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -155,7 +155,7 @@ func (s *Service) List(ctx context.Context, page, size int) (*domain.EventsRespo
 	return convertToEventsResponse(events), nil
 }
 
-func (s *Service) ListByOrganizer(ctx context.Context, organizerId int, page, size int) (*domain.EventsResponse, error) {
+func (s Service) ListByOrganizer(ctx context.Context, organizerId int, page, size int) (*domain.EventsResponse, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -173,7 +173,7 @@ func (s *Service) ListByOrganizer(ctx context.Context, organizerId int, page, si
 	return convertToEventsResponse(events), nil
 }
 
-func (s *Service) ListByParticipant(ctx context.Context, participantId int, page, size int) (*domain.EventsResponse, error) {
+func (s Service) ListByParticipant(ctx context.Context, participantId int, page, size int) (*domain.EventsResponse, error) {
 	if page < 1 {
 		page = 1
 	}

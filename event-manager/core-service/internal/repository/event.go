@@ -1,4 +1,4 @@
-package event
+package repository
 
 import (
 	"context"
@@ -20,7 +20,7 @@ func NewEvent(db *sqlx.DB) Event {
 	}
 }
 
-func (r *Event) Create(ctx context.Context, event model.Event) (int, error) {
+func (r Event) Create(ctx context.Context, event model.Event) (int, error) {
 	event.CreatedAt = time.Now()
 
 	query := `
@@ -49,7 +49,7 @@ func (r *Event) Create(ctx context.Context, event model.Event) (int, error) {
 	return eventID, nil
 }
 
-func (r *Event) GetById(ctx context.Context, eventID int) (model.Event, error) {
+func (r Event) GetById(ctx context.Context, eventID int) (model.Event, error) {
 	var event model.Event
 
 	query := `
@@ -69,7 +69,7 @@ func (r *Event) GetById(ctx context.Context, eventID int) (model.Event, error) {
 	return event, nil
 }
 
-func (r *Event) Update(ctx context.Context, event model.Event) error {
+func (r Event) Update(ctx context.Context, event model.Event) error {
 	query := `
 		UPDATE events
 		SET title = $1, description = $2, start_date = $3, end_date = $4, location = $5, status = $6
@@ -94,7 +94,7 @@ func (r *Event) Update(ctx context.Context, event model.Event) error {
 	return nil
 }
 
-func (r *Event) Delete(ctx context.Context, eventID int) error {
+func (r Event) Delete(ctx context.Context, eventID int) error {
 	query := `DELETE FROM events WHERE event_id = $1`
 
 	_, err := r.db.ExecContext(ctx, query, eventID)
@@ -105,7 +105,7 @@ func (r *Event) Delete(ctx context.Context, eventID int) error {
 	return nil
 }
 
-func (r *Event) List(ctx context.Context, limit, offset int) ([]model.Event, error) {
+func (r Event) List(ctx context.Context, limit, offset int) ([]model.Event, error) {
 	var events []model.Event
 
 	query := `
@@ -123,7 +123,7 @@ func (r *Event) List(ctx context.Context, limit, offset int) ([]model.Event, err
 	return events, nil
 }
 
-func (r *Event) ListByOrganizer(ctx context.Context, organizerID, limit, offset int) ([]model.Event, error) {
+func (r Event) ListByOrganizer(ctx context.Context, organizerID, limit, offset int) ([]model.Event, error) {
 	var events []model.Event
 
 	query := `
@@ -142,7 +142,7 @@ func (r *Event) ListByOrganizer(ctx context.Context, organizerID, limit, offset 
 	return events, nil
 }
 
-func (r *Event) ListByParticipant(ctx context.Context, participantID, limit, offset int) ([]model.Event, error) {
+func (r Event) ListByParticipant(ctx context.Context, participantID, limit, offset int) ([]model.Event, error) {
 	var events []model.Event
 
 	query := `

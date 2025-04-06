@@ -33,15 +33,15 @@ type Participant struct {
 	logger   *zap.SugaredLogger
 }
 
-func NewParticipantService(repo ParticipantRepo, userRepo UserRepo, logger *zap.SugaredLogger) *Participant {
-	return &Participant{
+func NewParticipantService(repo ParticipantRepo, userRepo UserRepo, logger *zap.SugaredLogger) Participant {
+	return Participant{
 		repo:     repo,
 		userRepo: userRepo,
 		logger:   logger,
 	}
 }
 
-func (s *Participant) Create(ctx context.Context, eventID int, req domain.EventParticipantCreateRequest) (*domain.EventParticipantResponse, error) {
+func (s Participant) Create(ctx context.Context, eventID int, req domain.EventParticipantCreateRequest) (*domain.EventParticipantResponse, error) {
 	user, err := s.userRepo.GetUserById(ctx, req.UserID)
 	if err != nil {
 		s.logger.Errorw("Failed to get user for participant creation", "error", err, "userID", req.UserID)
@@ -82,7 +82,7 @@ func (s *Participant) Create(ctx context.Context, eventID int, req domain.EventP
 	}, nil
 }
 
-func (s *Participant) GetById(ctx context.Context, id int) (*domain.EventParticipantResponse, error) {
+func (s Participant) GetById(ctx context.Context, id int) (*domain.EventParticipantResponse, error) {
 	participant, err := s.repo.GetById(ctx, id)
 	if err != nil {
 		s.logger.Errorw("Failed to get participant by ID", "error", err, "id", id)
@@ -105,7 +105,7 @@ func (s *Participant) GetById(ctx context.Context, id int) (*domain.EventPartici
 	}, nil
 }
 
-func (s *Participant) Delete(ctx context.Context, id int) error {
+func (s Participant) Delete(ctx context.Context, id int) error {
 	if err := s.repo.Delete(ctx, id); err != nil {
 		s.logger.Errorw("Failed to delete participant", "error", err, "id", id)
 		return errors.WithMessage(err, "failed to delete participant")
@@ -114,7 +114,7 @@ func (s *Participant) Delete(ctx context.Context, id int) error {
 	return nil
 }
 
-func (s *Participant) ListByEvent(ctx context.Context, eventID int, page, size int) (*domain.EventParticipantsResponse, error) {
+func (s Participant) ListByEvent(ctx context.Context, eventID int, page, size int) (*domain.EventParticipantsResponse, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -152,7 +152,7 @@ func (s *Participant) ListByEvent(ctx context.Context, eventID int, page, size i
 	}, nil
 }
 
-func (s *Participant) ListByUser(ctx context.Context, userId int, page, size int) (*domain.EventParticipantsResponse, error) {
+func (s Participant) ListByUser(ctx context.Context, userId int, page, size int) (*domain.EventParticipantsResponse, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -184,7 +184,7 @@ func (s *Participant) ListByUser(ctx context.Context, userId int, page, size int
 	}, nil
 }
 
-func (s *Participant) ConfirmParticipation(ctx context.Context, id int) error {
+func (s Participant) ConfirmParticipation(ctx context.Context, id int) error {
 	participant, err := s.repo.GetById(ctx, id)
 	if err != nil {
 		s.logger.Errorw("Failed to get participant for confirmation", "error", err, "id", id)
@@ -201,7 +201,7 @@ func (s *Participant) ConfirmParticipation(ctx context.Context, id int) error {
 	return nil
 }
 
-func (s *Participant) DeclineParticipation(ctx context.Context, id int) error {
+func (s Participant) DeclineParticipation(ctx context.Context, id int) error {
 	participant, err := s.repo.GetById(ctx, id)
 	if err != nil {
 		s.logger.Errorw("Failed to get participant for declining", "error", err, "id", id)

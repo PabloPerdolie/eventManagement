@@ -43,7 +43,7 @@ func NewService(taskRepo Repository, assignmentRepo AssignmentRepository, logger
 	}
 }
 
-func (s *Service) Create(ctx context.Context, req domain.TaskCreateRequest) (*domain.TaskResponse, error) {
+func (s Service) Create(ctx context.Context, req domain.TaskCreateRequest) (*domain.TaskResponse, error) {
 	task := model.Task{
 		EventId:     req.EventId,
 		ParentId:    req.ParentId,
@@ -88,7 +88,7 @@ func (s *Service) Create(ctx context.Context, req domain.TaskCreateRequest) (*do
 	}, nil
 }
 
-func (s *Service) Update(ctx context.Context, id int, req domain.TaskUpdateRequest) error {
+func (s Service) Update(ctx context.Context, id int, req domain.TaskUpdateRequest) error {
 	task, err := s.taskRepo.GetById(ctx, id)
 	if err != nil {
 		s.logger.Errorw("Failed to get task for update", "error", err, "id", id)
@@ -159,7 +159,7 @@ func (s *Service) Update(ctx context.Context, id int, req domain.TaskUpdateReque
 	return nil
 }
 
-func (s *Service) Delete(ctx context.Context, id int) error {
+func (s Service) Delete(ctx context.Context, id int) error {
 	if err := s.taskRepo.Delete(ctx, id); err != nil {
 		s.logger.Errorw("Failed to delete task", "error", err, "id", id)
 		return errors.WithMessage(err, "delete task")
@@ -168,7 +168,7 @@ func (s *Service) Delete(ctx context.Context, id int) error {
 	return nil
 }
 
-func (s *Service) ListByEvent(ctx context.Context, eventId int, page, size int) (*domain.TasksResponse, error) {
+func (s Service) ListByEvent(ctx context.Context, eventId int, page, size int) (*domain.TasksResponse, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -186,7 +186,7 @@ func (s *Service) ListByEvent(ctx context.Context, eventId int, page, size int) 
 	return s.convertToTasksResponse(ctx, tasks), nil
 }
 
-func (s *Service) ListByUser(ctx context.Context, userId int, page, size int) (*domain.TasksResponse, error) {
+func (s Service) ListByUser(ctx context.Context, userId int, page, size int) (*domain.TasksResponse, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -204,7 +204,7 @@ func (s *Service) ListByUser(ctx context.Context, userId int, page, size int) (*
 	return s.convertToTasksResponse(ctx, tasks), nil
 }
 
-func (s *Service) UpdateStatus(ctx context.Context, id int, status domain.TaskStatus) error {
+func (s Service) UpdateStatus(ctx context.Context, id int, status domain.TaskStatus) error {
 	task, err := s.taskRepo.GetById(ctx, id)
 	if err != nil {
 		s.logger.Errorw("Failed to get task for status update", "error", err, "id", id)
@@ -239,7 +239,7 @@ func (s *Service) UpdateStatus(ctx context.Context, id int, status domain.TaskSt
 	return nil
 }
 
-func (s *Service) convertToTasksResponse(ctx context.Context, tasks []model.Task) *domain.TasksResponse {
+func (s Service) convertToTasksResponse(ctx context.Context, tasks []model.Task) *domain.TasksResponse {
 	taskResponses := make([]domain.TaskResponse, len(tasks))
 	for i, task := range tasks {
 		assignments, err := s.assignmentRepo.ListByTask(ctx, task.TaskId, 100, 0)
