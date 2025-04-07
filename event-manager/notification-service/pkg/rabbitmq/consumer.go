@@ -66,7 +66,7 @@ func (c *RabbitMQConsumer) Start() error {
 
 	msgs, err := c.channel.Consume(
 		queue.Name, // queue
-		"",         // consumer
+		"",         // rabbimq
 		false,      // auto-ack
 		false,      // exclusive
 		false,      // no-local
@@ -75,7 +75,7 @@ func (c *RabbitMQConsumer) Start() error {
 	)
 	if err != nil {
 		c.cleanup()
-		return errors.WithMessage(err, "register a consumer")
+		return errors.WithMessage(err, "register a rabbimq")
 	}
 
 	c.logger.Infof("Connected to RabbitMQ and consuming from queue: %s", c.config.RabbitMQ.Queue)

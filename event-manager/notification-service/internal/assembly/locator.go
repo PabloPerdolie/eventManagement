@@ -27,7 +27,7 @@ func NewLocator(cfg *config.Config, logger *zap.SugaredLogger) (*ServiceLocator,
 	notifyConsumer := rabbitmq.New(notifyController, cfg, logger)
 	go func() {
 		if err := notifyConsumer.Start(); err != nil {
-			logger.Fatalf("Failed to start RabbitMQ consumer: %v", err)
+			logger.Fatalf("Failed to start RabbitMQ rabbimq: %v", err)
 		}
 	}()
 

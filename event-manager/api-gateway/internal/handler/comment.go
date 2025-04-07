@@ -21,18 +21,19 @@ func NewComment(commentService CommentService) Comment {
 	}
 }
 
-// Register handles user registration
-// @Summary Register a new user
-// @Description Register a new user in the system
-// @Tags auth
+// Create
+// @Summary Create a new comment
+// @Description Create a new comment
+// @Tags comments
 // @Accept json
 // @Produce json
-// @Param request body domain.UserRegisterRequest true "User registration data"
+// @Security Bearer
+// @Param request body domain.CommentCreateRequest true "Comment data"
 // @Success 201 {object} domain.AuthResponse
 // @Failure 400 {object} domain.ErrorResponse
 // @Failure 409 {object} domain.ErrorResponse
 // @Failure 500 {object} domain.ErrorResponse
-// @Router /auth/register [post]
+// @Router /comments/create [post]
 func (h *Comment) Create(c *gin.Context) {
 	var req domain.CommentCreateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

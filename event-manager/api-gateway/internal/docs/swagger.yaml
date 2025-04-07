@@ -15,6 +15,21 @@ definitions:
       user:
         $ref: '#/definitions/domain.UserResponse'
     type: object
+  domain.CommentCreateRequest:
+    properties:
+      content:
+        type: string
+      event_id:
+        type: integer
+      sender_id:
+        type: integer
+      task_id:
+        type: integer
+    required:
+    - content
+    - event_id
+    - sender_id
+    type: object
   domain.ErrorResponse:
     description: Ответ сервера при возникновении ошибки
     properties:
@@ -248,79 +263,42 @@ paths:
       summary: Register a new user
       tags:
       - auth
-  /comments/{path}:
-    delete:
-      consumes:
-      - application/json
-      description: Forward requests to the Communication Service
-      parameters:
-      - description: Request path
-        in: path
-        name: path
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses: {}
-      security:
-      - Bearer: []
-      summary: Proxy to Communication Service
-      tags:
-      - proxy
-    get:
-      consumes:
-      - application/json
-      description: Forward requests to the Communication Service
-      parameters:
-      - description: Request path
-        in: path
-        name: path
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses: {}
-      security:
-      - Bearer: []
-      summary: Proxy to Communication Service
-      tags:
-      - proxy
+  /comments/create:
     post:
       consumes:
       - application/json
-      description: Forward requests to the Communication Service
+      description: Create a new comment
       parameters:
-      - description: Request path
-        in: path
-        name: path
+      - description: Comment data
+        in: body
+        name: request
         required: true
-        type: string
+        schema:
+          $ref: '#/definitions/domain.CommentCreateRequest'
       produces:
       - application/json
-      responses: {}
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/domain.AuthResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/domain.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/domain.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/domain.ErrorResponse'
       security:
       - Bearer: []
-      summary: Proxy to Communication Service
+      summary: Create a new comment
       tags:
-      - proxy
-    put:
-      consumes:
-      - application/json
-      description: Forward requests to the Communication Service
-      parameters:
-      - description: Request path
-        in: path
-        name: path
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses: {}
-      security:
-      - Bearer: []
-      summary: Proxy to Communication Service
-      tags:
-      - proxy
+      - comments
   /events/{path}:
     delete:
       consumes:

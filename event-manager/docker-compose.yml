@@ -112,6 +112,21 @@ services:
       - event-network
     restart: unless-stopped
 
+  communication-service:
+    build:
+      context: ./communication-service
+      dockerfile: Dockerfile
+    ports:
+      - "8083:8083"
+    depends_on:
+      - postgres
+      - rabbitmq
+      - core-service
+      - api-gateway
+    networks:
+      - event-network
+    restart: unless-stopped
+
 volumes:
   postgres-data:
   redis-data:

@@ -27,6 +27,8 @@ definitions:
         type: boolean
       senderId:
         type: integer
+      taskId:
+        type: integer
     type: object
 host: localhost:8083
 info:
@@ -60,39 +62,6 @@ paths:
             additionalProperties: true
             type: object
       summary: Удалить комментарий
-      tags:
-      - comments
-    get:
-      description: Возвращает комментарий по его идентификатору
-      parameters:
-      - description: ID комментария
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Комментарий
-          schema:
-            $ref: '#/definitions/model.Comment'
-        "400":
-          description: Некорректный ID комментария
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: Комментарий не найден
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Внутренняя ошибка сервера
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Получить комментарий по ID
       tags:
       - comments
   /comments/{id}/read:

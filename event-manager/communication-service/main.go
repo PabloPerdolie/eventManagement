@@ -16,9 +16,9 @@ import (
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 	"go.uber.org/zap"
-
-	_ "github.com/PabloPerdolie/event-manager/communication-service/docs"
 )
+
+//go:generate swag init -g main.go -o ./internal/docs
 
 // @title Communication Service for Event Management App
 // @version 1.0

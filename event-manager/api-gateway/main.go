@@ -16,6 +16,8 @@ import (
 	"go.uber.org/zap"
 )
 
+//go:generate swag init -g main.go -o ./internal/docs
+
 // @title API Gateway for Event Management App
 // @version 1.0
 // @description Authentication and routing gateway for event management services

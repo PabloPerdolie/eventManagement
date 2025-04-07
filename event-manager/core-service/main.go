@@ -19,6 +19,8 @@ import (
 	"go.uber.org/zap"
 )
 
+//go:generate swag init -g main.go -o ./internal/docs
+
 // @title Event Management Core Service API
 // @version 1.0
 // @description API for managing events, users, tasks and expenses
