@@ -11,18 +11,14 @@ import (
 )
 
 type Service struct {
-	coreServiceURL          string
-	notificationServiceURL  string
-	communicationServiceURL string
-	logger                  *zap.SugaredLogger
+	coreServiceURL string
+	logger         *zap.SugaredLogger
 }
 
-func New(coreURL, notificationURL, communicationURL string, logger *zap.SugaredLogger) *Service {
+func New(coreURL string, logger *zap.SugaredLogger) *Service {
 	return &Service{
-		coreServiceURL:          coreURL,
-		notificationServiceURL:  notificationURL,
-		communicationServiceURL: communicationURL,
-		logger:                  logger,
+		coreServiceURL: coreURL,
+		logger:         logger,
 	}
 }
 
@@ -35,32 +31,6 @@ func (s *Service) NewCoreServiceProxy() (*httputil.ReverseProxy, error) {
 	proxy := httputil.NewSingleHostReverseProxy(coreURL)
 	s.updateProxyDirector(proxy, coreURL)
 	s.setupProxyErrorHandler(proxy, "core-service")
-
-	return proxy, nil
-}
-
-func (s *Service) NewNotificationServiceProxy() (*httputil.ReverseProxy, error) {
-	notificationURL, err := url.Parse(s.notificationServiceURL)
-	if err != nil {
-		return nil, errors.WithMessage(err, "parse url")
-	}
-
-	proxy := httputil.NewSingleHostReverseProxy(notificationURL)
-	s.updateProxyDirector(proxy, notificationURL)
-	s.setupProxyErrorHandler(proxy, "notification-service")
-
-	return proxy, nil
-}
-
-func (s *Service) NewCommunicationServiceProxy() (*httputil.ReverseProxy, error) {
-	communicationURL, err := url.Parse(s.communicationServiceURL)
-	if err != nil {
-		return nil, errors.WithMessage(err, "parse url")
-	}
-
-	proxy := httputil.NewSingleHostReverseProxy(communicationURL)
-	s.updateProxyDirector(proxy, communicationURL)
-	s.setupProxyErrorHandler(proxy, "communication-service")
 
 	return proxy, nil
 }

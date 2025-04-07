@@ -13,8 +13,9 @@ import (
 )
 
 type Controllers struct {
-	AuthCtrl  handler.Auth
-	ProxyCtrl handler.Proxy
+	AuthCtrl    handler.Auth
+	ProxyCtrl   handler.Proxy
+	CommentCtrl handler.Comment
 }
 
 func SetupRoutes(router *gin.Engine, cfg *config.Config, c *Controllers, authMiddleware *middleware.AuthMiddleware) {
@@ -86,9 +87,9 @@ func setupServiceProxies(api *gin.RouterGroup, c *Controllers, authMiddleware *m
 		eventsProxy.Any("/*path", c.ProxyCtrl.ProxyToEventService)
 	}
 
-	commentsProxy := api.Group("/comments", authMiddleware.Authenticate())
+	comments := api.Group("/comments", authMiddleware.Authenticate())
 	{
-		commentsProxy.GET("/*path", c.ProxyCtrl.ProxyToCommunicationService)
+		comments.GET("/create", c.CommentCtrl.Create)
 	}
 }
 
