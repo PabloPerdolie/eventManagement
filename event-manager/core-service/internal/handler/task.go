@@ -30,6 +30,17 @@ func NewTask(service TaskService, logger *zap.SugaredLogger) TaskController {
 	}
 }
 
+// Create godoc
+// @Summary Создать новую задачу
+// @Description Создает новую задачу в системе
+// @Tags tasks
+// @Accept json
+// @Produce json
+// @Param request body domain.TaskCreateRequest true "Данные для создания задачи"
+// @Success 201 {object} map[string]interface{} "Возвращает ID созданной задачи"
+// @Failure 400 {object} map[string]interface{} "Ошибка валидации"
+// @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
+// @Router /tasks [post]
 func (h *TaskController) Create(c *gin.Context) {
 	var req domain.TaskCreateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -48,6 +59,18 @@ func (h *TaskController) Create(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"id": id})
 }
 
+// Update godoc
+// @Summary Обновить задачу
+// @Description Обновляет существующую задачу по ID
+// @Tags tasks
+// @Accept json
+// @Produce json
+// @Param task_id path int true "ID задачи"
+// @Param request body domain.TaskUpdateRequest true "Данные для обновления задачи"
+// @Success 204 "Задача успешно обновлена"
+// @Failure 400 {object} map[string]interface{} "Ошибка валидации или некорректный ID задачи"
+// @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
+// @Router /tasks/{task_id} [put]
 func (h *TaskController) Update(c *gin.Context) {
 	idStr := c.Param("task_id")
 	id, err := strconv.Atoi(idStr)
@@ -73,6 +96,16 @@ func (h *TaskController) Update(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
+// Delete godoc
+// @Summary Удалить задачу
+// @Description Удаляет задачу по ID
+// @Tags tasks
+// @Produce json
+// @Param task_id path int true "ID задачи"
+// @Success 204 "Задача успешно удалена"
+// @Failure 400 {object} map[string]interface{} "Некорректный ID задачи"
+// @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
+// @Router /tasks/{task_id} [delete]
 func (h *TaskController) Delete(c *gin.Context) {
 	idStr := c.Param("task_id")
 	id, err := strconv.Atoi(idStr)
@@ -91,6 +124,18 @@ func (h *TaskController) Delete(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
+// List godoc
+// @Summary Получить список задач
+// @Description Возвращает список задач с пагинацией, может фильтровать по событию или пользователю
+// @Tags tasks
+// @Produce json
+// @Param page query int false "Номер страницы (по умолчанию: 1)"
+// @Param size query int false "Размер страницы (по умолчанию: 10)"
+// @Param event_id query int false "ID события для фильтрации задач"
+// @Param X-User-Id header string false "ID пользователя для фильтрации задач"
+// @Success 200 {object} domain.TasksResponse "Список задач"
+// @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
+// @Router /tasks [get]
 func (h *TaskController) List(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	size, _ := strconv.Atoi(c.DefaultQuery("size", "10"))

@@ -1,0 +1,571 @@
+basePath: /api/v1
+definitions:
+  domain.EventCreateRequest:
+    properties:
+      description:
+        type: string
+      end_date:
+        type: string
+      location:
+        type: string
+      start_date:
+        type: string
+      title:
+        type: string
+    required:
+    - end_date
+    - start_date
+    - title
+    type: object
+  domain.EventData:
+    properties:
+      eventData:
+        $ref: '#/definitions/domain.EventResponse'
+      eventParticipants:
+        $ref: '#/definitions/domain.EventParticipantsResponse'
+      tasks:
+        $ref: '#/definitions/domain.TasksResponse'
+    type: object
+  domain.EventParticipantCreateRequest:
+    properties:
+      event_title:
+        type: string
+      user_id:
+        type: integer
+    required:
+    - event_title
+    - user_id
+    type: object
+  domain.EventParticipantResponse:
+    properties:
+      event_id:
+        type: integer
+      id:
+        type: integer
+      is_confirmed:
+        type: boolean
+      joined_at:
+        type: string
+      role:
+        type: string
+      user:
+        $ref: '#/definitions/domain.UserResponse'
+    type: object
+  domain.EventParticipantsResponse:
+    properties:
+      participants:
+        items:
+          $ref: '#/definitions/domain.EventParticipantResponse'
+        type: array
+      total:
+        type: integer
+    type: object
+  domain.EventResponse:
+    properties:
+      created_at:
+        type: string
+      created_by:
+        type: integer
+      description:
+        type: string
+      end_date:
+        type: string
+      id:
+        type: integer
+      location:
+        type: string
+      start_date:
+        type: string
+      status:
+        type: string
+      title:
+        type: string
+    type: object
+  domain.EventsResponse:
+    properties:
+      events:
+        items:
+          $ref: '#/definitions/domain.EventResponse'
+        type: array
+      total:
+        type: integer
+    type: object
+  domain.TaskCreateRequest:
+    properties:
+      assigned_to:
+        type: integer
+      description:
+        type: string
+      event_id:
+        type: integer
+      parent_id:
+        type: integer
+      priority:
+        type: string
+      story_points:
+        type: integer
+      title:
+        type: string
+    required:
+    - event_id
+    - title
+    type: object
+  domain.TaskResponse:
+    properties:
+      assigned_to:
+        type: integer
+      created_at:
+        type: string
+      description:
+        type: string
+      event_id:
+        type: integer
+      id:
+        type: integer
+      parent_id:
+        type: integer
+      priority:
+        type: string
+      status:
+        $ref: '#/definitions/domain.TaskStatus'
+      story_points:
+        type: integer
+      title:
+        type: string
+    type: object
+  domain.TaskStatus:
+    enum:
+    - pending
+    - in_progress
+    - completed
+    - cancelled
+    type: string
+    x-enum-varnames:
+    - TaskStatusPending
+    - TaskStatusInProgress
+    - TaskStatusCompleted
+    - TaskStatusCancelled
+  domain.TaskUpdateRequest:
+    properties:
+      assigned_to:
+        type: integer
+      description:
+        type: string
+      parent_id:
+        type: integer
+      priority:
+        type: string
+      status:
+        $ref: '#/definitions/domain.TaskStatus'
+      story_points:
+        type: integer
+      title:
+        type: string
+    type: object
+  domain.TasksResponse:
+    properties:
+      tasks:
+        items:
+          $ref: '#/definitions/domain.TaskResponse'
+        type: array
+      total:
+        type: integer
+    type: object
+  domain.UserResponse:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      is_active:
+        type: boolean
+      role:
+        type: string
+      username:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: API for managing events, users, tasks and expenses
+  title: Event Management Core Service API
+  version: "1.0"
+paths:
+  /events:
+    get:
+      description: Возвращает список событий с пагинацией, может фильтровать по участию
+        пользователя
+      parameters:
+      - description: 'Номер страницы (по умолчанию: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Размер страницы (по умолчанию: 10)'
+        in: query
+        name: size
+        type: integer
+      - description: ID пользователя для фильтрации по участию
+        in: header
+        name: X-User-Id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список событий
+          schema:
+            $ref: '#/definitions/domain.EventsResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Получить список событий
+      tags:
+      - events
+    post:
+      consumes:
+      - application/json
+      description: Создает новое событие с указанным пользователем в качестве организатора
+      parameters:
+      - description: ID пользователя-организатора
+        in: header
+        name: X-User-Id
+        required: true
+        type: string
+      - description: Данные для создания события
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/domain.EventCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Возвращает ID созданного события
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Ошибка валидации
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Создать новое событие
+      tags:
+      - events
+  /events/{event_id}:
+    delete:
+      description: Удаляет событие по ID
+      parameters:
+      - description: ID события
+        in: path
+        name: event_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Операция успешна
+        "400":
+          description: Некорректный ID события
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Удалить событие
+      tags:
+      - events
+    get:
+      description: Возвращает детальную информацию о событии, включая список участников
+        и задач
+      parameters:
+      - description: ID события
+        in: path
+        name: event_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Детальная информация о событии
+          schema:
+            $ref: '#/definitions/domain.EventData'
+        "400":
+          description: Некорректный ID события
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Получить детальную информацию о событии
+      tags:
+      - events
+  /events/{event_id}/participants:
+    post:
+      consumes:
+      - application/json
+      description: Добавляет нового участника в событие
+      parameters:
+      - description: ID события
+        in: path
+        name: event_id
+        required: true
+        type: integer
+      - description: Данные для добавления участника
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/domain.EventParticipantCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Возвращает ID созданного участия
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Ошибка валидации или некорректный ID события
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Добавить участника в событие
+      tags:
+      - participants
+  /events/participants/{event_part_id}:
+    delete:
+      description: Удаляет участника из события
+      parameters:
+      - description: ID участия в событии
+        in: path
+        name: event_part_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Участник успешно удален
+        "400":
+          description: Некорректный ID участия
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Удалить участника из события
+      tags:
+      - participants
+  /health:
+    get:
+      description: Проверяет доступность и работоспособность сервиса
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'Статус: ok'
+          schema:
+            additionalProperties: true
+            type: object
+        "503":
+          description: 'Статус: error'
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Проверка состояния сервиса
+      tags:
+      - health
+  /participants/user:
+    get:
+      description: Возвращает список событий, в которых пользователь является участником
+      parameters:
+      - description: ID пользователя
+        in: header
+        name: X-User-Id
+        required: true
+        type: string
+      - description: 'Номер страницы (по умолчанию: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Размер страницы (по умолчанию: 10)'
+        in: query
+        name: size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список участий в событиях
+          schema:
+            $ref: '#/definitions/domain.EventParticipantsResponse'
+        "400":
+          description: Некорректный ID пользователя
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Получить список событий пользователя
+      tags:
+      - participants
+  /tasks:
+    get:
+      description: Возвращает список задач с пагинацией, может фильтровать по событию
+        или пользователю
+      parameters:
+      - description: 'Номер страницы (по умолчанию: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Размер страницы (по умолчанию: 10)'
+        in: query
+        name: size
+        type: integer
+      - description: ID события для фильтрации задач
+        in: query
+        name: event_id
+        type: integer
+      - description: ID пользователя для фильтрации задач
+        in: header
+        name: X-User-Id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список задач
+          schema:
+            $ref: '#/definitions/domain.TasksResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Получить список задач
+      tags:
+      - tasks
+    post:
+      consumes:
+      - application/json
+      description: Создает новую задачу в системе
+      parameters:
+      - description: Данные для создания задачи
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/domain.TaskCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Возвращает ID созданной задачи
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Ошибка валидации
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Создать новую задачу
+      tags:
+      - tasks
+  /tasks/{task_id}:
+    delete:
+      description: Удаляет задачу по ID
+      parameters:
+      - description: ID задачи
+        in: path
+        name: task_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Задача успешно удалена
+        "400":
+          description: Некорректный ID задачи
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Удалить задачу
+      tags:
+      - tasks
+    put:
+      consumes:
+      - application/json
+      description: Обновляет существующую задачу по ID
+      parameters:
+      - description: ID задачи
+        in: path
+        name: task_id
+        required: true
+        type: integer
+      - description: Данные для обновления задачи
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/domain.TaskUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Задача успешно обновлена
+        "400":
+          description: Ошибка валидации или некорректный ID задачи
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Обновить задачу
+      tags:
+      - tasks
+swagger: "2.0"

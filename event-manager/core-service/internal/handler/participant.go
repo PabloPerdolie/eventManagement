@@ -30,6 +30,18 @@ func NewParticipantHandler(service ParticipantService, logger *zap.SugaredLogger
 	}
 }
 
+// Create godoc
+// @Summary Добавить участника в событие
+// @Description Добавляет нового участника в событие
+// @Tags participants
+// @Accept json
+// @Produce json
+// @Param event_id path int true "ID события"
+// @Param request body domain.EventParticipantCreateRequest true "Данные для добавления участника"
+// @Success 201 {object} map[string]interface{} "Возвращает ID созданного участия"
+// @Failure 400 {object} map[string]interface{} "Ошибка валидации или некорректный ID события"
+// @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
+// @Router /events/{event_id}/participants [post]
 func (h *ParticipantController) Create(c *gin.Context) {
 	eventIdStr := c.Param("event_id")
 	eventId, err := strconv.Atoi(eventIdStr)
@@ -56,6 +68,16 @@ func (h *ParticipantController) Create(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"id": id})
 }
 
+// Delete godoc
+// @Summary Удалить участника из события
+// @Description Удаляет участника из события
+// @Tags participants
+// @Produce json
+// @Param event_part_id path int true "ID участия в событии"
+// @Success 204 "Участник успешно удален"
+// @Failure 400 {object} map[string]interface{} "Некорректный ID участия"
+// @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
+// @Router /events/participants/{event_part_id} [delete]
 func (h *ParticipantController) Delete(c *gin.Context) {
 	eventPartIdStr := c.Param("event_part_id")
 	eventPartId, err := strconv.Atoi(eventPartIdStr)
@@ -74,6 +96,18 @@ func (h *ParticipantController) Delete(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
+// ListByUser godoc
+// @Summary Получить список событий пользователя
+// @Description Возвращает список событий, в которых пользователь является участником
+// @Tags participants
+// @Produce json
+// @Param X-User-Id header string true "ID пользователя"
+// @Param page query int false "Номер страницы (по умолчанию: 1)"
+// @Param size query int false "Размер страницы (по умолчанию: 10)"
+// @Success 200 {object} domain.EventParticipantsResponse "Список участий в событиях"
+// @Failure 400 {object} map[string]interface{} "Некорректный ID пользователя"
+// @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
+// @Router /participants/user [get]
 func (h *ParticipantController) ListByUser(c *gin.Context) {
 	userIdStr := c.GetHeader("X-User-Id")
 	userId, err := strconv.Atoi(userIdStr)

@@ -37,6 +37,18 @@ func NewEvent(commonService EventCommonService, service EventService, logger *za
 	}
 }
 
+// Create godoc
+// @Summary Создать новое событие
+// @Description Создает новое событие с указанным пользователем в качестве организатора
+// @Tags events
+// @Accept json
+// @Produce json
+// @Param X-User-Id header string true "ID пользователя-организатора"
+// @Param request body domain.EventCreateRequest true "Данные для создания события"
+// @Success 201 {object} map[string]interface{} "Возвращает ID созданного события"
+// @Failure 400 {object} map[string]interface{} "Ошибка валидации"
+// @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
+// @Router /events [post]
 func (h *EventController) Create(c *gin.Context) {
 	idStr := c.GetHeader("X-User-Id")
 	id, err := strconv.Atoi(idStr)
@@ -63,6 +75,16 @@ func (h *EventController) Create(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"id": eventId})
 }
 
+// Delete godoc
+// @Summary Удалить событие
+// @Description Удаляет событие по ID
+// @Tags events
+// @Produce json
+// @Param event_id path int true "ID события"
+// @Success 200 "Операция успешна"
+// @Failure 400 {object} map[string]interface{} "Некорректный ID события"
+// @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
+// @Router /events/{event_id} [delete]
 func (h *EventController) Delete(c *gin.Context) {
 	idStr := c.Param("event_id")
 	id, err := strconv.Atoi(idStr)
@@ -81,6 +103,17 @@ func (h *EventController) Delete(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
+// List godoc
+// @Summary Получить список событий
+// @Description Возвращает список событий с пагинацией, может фильтровать по участию пользователя
+// @Tags events
+// @Produce json
+// @Param page query int false "Номер страницы (по умолчанию: 1)"
+// @Param size query int false "Размер страницы (по умолчанию: 10)"
+// @Param X-User-Id header string false "ID пользователя для фильтрации по участию"
+// @Success 200 {object} domain.EventsResponse "Список событий"
+// @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
+// @Router /events [get]
 func (h *EventController) List(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	size, _ := strconv.Atoi(c.DefaultQuery("size", "10"))
@@ -121,6 +154,16 @@ func (h *EventController) List(c *gin.Context) {
 	c.JSON(http.StatusOK, events)
 }
 
+// EventSummary godoc
+// @Summary Получить детальную информацию о событии
+// @Description Возвращает детальную информацию о событии, включая список участников и задач
+// @Tags events
+// @Produce json
+// @Param event_id path int true "ID события"
+// @Success 200 {object} domain.EventData "Детальная информация о событии"
+// @Failure 400 {object} map[string]interface{} "Некорректный ID события"
+// @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
+// @Router /events/{event_id} [get]
 func (h *EventController) EventSummary(c *gin.Context) {
 	idStr := c.Param("event_id")
 	eventId, err := strconv.Atoi(idStr)

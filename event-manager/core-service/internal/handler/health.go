@@ -22,7 +22,14 @@ func NewHealthController(service service.HealthService, logger *zap.SugaredLogge
 	}
 }
 
-// Check обрабатывает запрос на проверку здоровья сервиса
+// Check godoc
+// @Summary Проверка состояния сервиса
+// @Description Проверяет доступность и работоспособность сервиса
+// @Tags health
+// @Produce json
+// @Success 200 {object} map[string]interface{} "Статус: ok"
+// @Failure 503 {object} map[string]interface{} "Статус: error"
+// @Router /health [get]
 func (c HealthController) Check(ctx *gin.Context) {
 	status, err := c.service.Check(ctx.Request.Context())
 	if err != nil {
