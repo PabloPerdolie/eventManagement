@@ -6,9 +6,9 @@ CREATE TABLE comments (
     content TEXT NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
-    is_read BOOLEAN NOT NULL DEFAULT FALSE
---     FOREIGN KEY (event_id) REFERENCES event(event_id) ON DELETE CASCADE,
---     FOREIGN KEY (sender_id) REFERENCES "user"(user_id) ON DELETE CASCADE
+    is_read BOOLEAN NOT NULL DEFAULT FALSE,
+    FOREIGN KEY (event_id) REFERENCES events(event_id) ON DELETE CASCADE,
+    FOREIGN KEY (sender_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
 
 -- +goose Down

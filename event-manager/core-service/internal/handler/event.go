@@ -38,7 +38,7 @@ func NewEvent(commonService EventCommonService, service EventService, logger *za
 }
 
 func (h *EventController) Create(c *gin.Context) {
-	idStr := c.Query("user_id")
+	idStr := c.GetHeader("X-User-Id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		h.logger.Errorw("Invalid user id", "error", err, "user_id", idStr)
@@ -85,7 +85,7 @@ func (h *EventController) List(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	size, _ := strconv.Atoi(c.DefaultQuery("size", "10"))
 
-	userIDStr := c.Query("user_id")
+	userIDStr := c.GetHeader("X-User-Id")
 	var userID *int
 	if userIDStr != "" {
 		parsed, err := strconv.Atoi(userIDStr)

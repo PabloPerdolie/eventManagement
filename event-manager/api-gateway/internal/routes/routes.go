@@ -17,8 +17,6 @@ type Controllers struct {
 	ProxyCtrl handler.Proxy
 }
 
-//func SetupRoutes(router *gin.Engine, c *Controllers) {
-
 func SetupRoutes(router *gin.Engine, cfg *config.Config, c *Controllers, authMiddleware *middleware.AuthMiddleware) {
 	configureCORS(router, cfg.AllowedOrigin)
 
@@ -35,9 +33,9 @@ func SetupRoutes(router *gin.Engine, cfg *config.Config, c *Controllers, authMid
 	api := router.Group("/api/v1")
 	{
 		setupPublicRoutes(api, c)
-		//
-		//setupProtectedRoutes(api, c, authMiddleware)
-		//
+
+		setupProtectedRoutes(api, c, authMiddleware)
+
 		//setupAdminRoutes(api, c, authMiddleware)
 	}
 
@@ -55,27 +53,22 @@ func setupPublicRoutes(api *gin.RouterGroup, c *Controllers) {
 	}
 }
 
-//func setupProtectedRoutes(api *gin.RouterGroup, c *Controllers, authMiddleware *middleware.AuthMiddleware) {
-//	// User management
-//	users := api.Group("/users", authMiddleware.Authenticate())
-//	{
-//		users.GET("/me", h.GetCurrentUser)
-//		users.PUT("/me", h.UpdateProfile)
-//		users.PUT("/me/password", h.ChangePassword)
-//		users.DELETE("/me", h.DeleteAccount)
-//
-//		// User's comments
-//		users.GET("/me/comments", h.GetUserComments)
-//	}
-//
-//	// Direct comment creation endpoint
-//	comments := api.Group("/comments", authMiddleware.Authenticate())
-//	{
-//		comments.POST("", h.CreateComment)
-//	}
-//
-//	setupServiceProxies(api, h, authMiddleware)
-//}
+func setupProtectedRoutes(api *gin.RouterGroup, c *Controllers, authMiddleware *middleware.AuthMiddleware) {
+	// User management
+	//users := api.Group("/users", authMiddleware.Authenticate())
+	//{
+	//	users.GET("/me", h.GetCurrentUser)
+	//	users.PUT("/me", h.UpdateProfile)
+	//	users.PUT("/me/password", h.ChangePassword)
+	//	users.DELETE("/me", h.DeleteAccount)
+	//
+	//	// User's comments
+	//	users.GET("/me/comments", h.GetUserComments)
+	//}
+
+	setupServiceProxies(api, c, authMiddleware)
+}
+
 //
 //func setupAdminRoutes(api *gin.RouterGroup, h *handler.Handler, authMiddleware *middleware.AuthMiddleware) {
 //	admin := api.Group("/admin", authMiddleware.AuthenticateAdmin())
@@ -86,22 +79,18 @@ func setupPublicRoutes(api *gin.RouterGroup, c *Controllers) {
 //		admin.DELETE("/users/:id", h.DeleteUser)
 //	}
 //}
-//
-//func setupServiceProxies(api *gin.RouterGroup, h *handler.Handler, authMiddleware *middleware.AuthMiddleware) {
-//	eventsProxy := api.Group("/events", authMiddleware.Authenticate())
-//	{
-//		eventsProxy.Any("/*path", h.ProxyToEventService)
-//	}
-//
-//	// For all non-POST comment operations, use the proxy
-//	commentsProxy := api.Group("/comments", authMiddleware.Authenticate())
-//	{
-//		// Skip POST requests as they are handled by the direct endpoint
-//		commentsProxy.GET("/*path", h.ProxyToCommunicationService)
-//		commentsProxy.PUT("/*path", h.ProxyToCommunicationService)
-//		commentsProxy.DELETE("/*path", h.ProxyToCommunicationService)
-//	}
-//}
+
+func setupServiceProxies(api *gin.RouterGroup, c *Controllers, authMiddleware *middleware.AuthMiddleware) {
+	eventsProxy := api.Group("/events", authMiddleware.Authenticate())
+	{
+		eventsProxy.Any("/*path", c.ProxyCtrl.ProxyToEventService)
+	}
+
+	commentsProxy := api.Group("/comments", authMiddleware.Authenticate())
+	{
+		commentsProxy.GET("/*path", c.ProxyCtrl.ProxyToCommunicationService)
+	}
+}
 
 func configureCORS(router *gin.Engine, allowedOrigin string) {
 	corsConfig := cors.DefaultConfig()
