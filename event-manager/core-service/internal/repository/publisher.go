@@ -2,38 +2,23 @@ package repository
 
 import (
 	"context"
+	rabbitmq "github.com/PabloPerdolie/event-manager/core-service/pkg/rabbitmq/publisher"
 
 	"github.com/pkg/errors"
-	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 type Publisher struct {
-	rabbitMQConn *amqp.Connection
-	rabbitMQChan *amqp.Channel
-	queueName    string
+	pbl *rabbitmq.RabbitMQPublisher
 }
 
-func NewPublisher(rabbitMQConn *amqp.Connection, rabbitMQChan *amqp.Channel, queueName string) Publisher {
+func NewPublisher(pbl *rabbitmq.RabbitMQPublisher) Publisher {
 	return Publisher{
-		rabbitMQConn: rabbitMQConn,
-		rabbitMQChan: rabbitMQChan,
-		queueName:    queueName,
+		pbl: pbl,
 	}
 }
 
-func (p *Publisher) Publish(ctx context.Context, data []byte) error {
-	err := p.rabbitMQChan.PublishWithContext(
-		ctx,
-		"",
-		p.queueName,
-		false,
-		false,
-		amqp.Publishing{
-			ContentType:  "application/json",
-			Body:         data,
-			DeliveryMode: amqp.Persistent,
-		},
-	)
+func (p Publisher) Publish(ctx context.Context, data []byte) error {
+	err := p.pbl.Publish(ctx, data)
 	if err != nil {
 		return errors.WithMessage(err, "publish data")
 	}

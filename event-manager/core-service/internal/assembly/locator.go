@@ -9,6 +9,7 @@ import (
 	"github.com/PabloPerdolie/event-manager/core-service/internal/service/event"
 	"github.com/PabloPerdolie/event-manager/core-service/internal/service/task"
 	"github.com/PabloPerdolie/event-manager/core-service/pkg/postgres"
+	rabbitmq "github.com/PabloPerdolie/event-manager/core-service/pkg/rabbitmq/publisher"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	"github.com/pkg/errors"
@@ -27,6 +28,13 @@ func NewLocator(cfg *config.Config, logger *zap.SugaredLogger) (*ServiceLocator,
 		return nil, errors.WithMessage(err, "init db")
 	}
 
+	publisher, err := rabbitmq.New(cfg.NotificationQueueName, cfg.RabbitMQURL)
+	if err != nil {
+		return nil, errors.WithMessage(err, "new publisher")
+	}
+
+	pblRepo := repository.NewPublisher(publisher)
+
 	eventRepo := repository.NewEvent(db)
 	taskRepo := repository.NewTask(db)
 	assignmentRepo := repository.NewTaskAssignment(db)
@@ -35,8 +43,8 @@ func NewLocator(cfg *config.Config, logger *zap.SugaredLogger) (*ServiceLocator,
 
 	healthService := service.NewHealthService(db, logger)
 
-	eventService := event.NewService(eventRepo, participantRepo, logger)
-	eventParticipantService := event.NewParticipantService(participantRepo, userRepo, logger)
+	eventService := event.NewService(eventRepo, participantRepo, pblRepo, logger)
+	eventParticipantService := event.NewParticipantService(participantRepo, userRepo, pblRepo, logger)
 	taskService := task.NewService(taskRepo, assignmentRepo, logger)
 
 	commonService := service.NewService(taskService, eventParticipantService, eventService)

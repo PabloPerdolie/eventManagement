@@ -3,6 +3,7 @@ package event
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"github.com/PabloPerdolie/event-manager/core-service/internal/domain"
 	"github.com/pkg/errors"
 	"time"
@@ -28,16 +29,18 @@ type UserRepo interface {
 }
 
 type Participant struct {
-	repo     ParticipantRepo
-	userRepo UserRepo
-	logger   *zap.SugaredLogger
+	repo      ParticipantRepo
+	userRepo  UserRepo
+	notifyPbl NotifyPublisher
+	logger    *zap.SugaredLogger
 }
 
-func NewParticipantService(repo ParticipantRepo, userRepo UserRepo, logger *zap.SugaredLogger) Participant {
+func NewParticipantService(repo ParticipantRepo, userRepo UserRepo, notifyPbl NotifyPublisher, logger *zap.SugaredLogger) Participant {
 	return Participant{
-		repo:     repo,
-		userRepo: userRepo,
-		logger:   logger,
+		repo:      repo,
+		userRepo:  userRepo,
+		notifyPbl: notifyPbl,
+		logger:    logger,
 	}
 }
 
@@ -69,7 +72,25 @@ func (s Participant) Create(ctx context.Context, eventID int, req domain.EventPa
 	id, err := s.repo.Create(ctx, participant)
 	if err != nil {
 		s.logger.Errorw("Failed to create participant", "error", err, "eventID", eventID, "userID", req.UserID)
-		return nil, errors.WithMessage(err, "failed to create participant")
+		return nil, errors.WithMessage(err, "create participant")
+	}
+
+	data := map[string]any{
+		"event": "participant_added",
+		"data": map[string]any{
+			"event_name": req.EventTitle,
+			"user_email": user.Email,
+		},
+	}
+
+	bytes, err := json.Marshal(data)
+	if err != nil {
+		return nil, errors.WithMessage(err, "marshal participant notify")
+	}
+
+	err = s.notifyPbl.Publish(ctx, bytes)
+	if err != nil {
+		return nil, errors.WithMessage(err, "publish participant notify")
 	}
 
 	return &domain.EventParticipantResponse{

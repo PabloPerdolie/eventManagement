@@ -6,10 +6,11 @@ import (
 )
 
 type Config struct {
-	Port             string
-	DatabaseURL      string
-	RabbitMQURL      string
-	CommentQueueName string
+	Port                  string
+	DatabaseURL           string
+	RabbitMQURL           string
+	CommentQueueName      string
+	NotificationQueueName string
 }
 
 func New() (*Config, error) {
@@ -33,10 +34,16 @@ func New() (*Config, error) {
 		commentQueueName = "comments"
 	}
 
+	notificationsQueueName := os.Getenv("NOTIFICATION_QUEUE_NAME")
+	if commentQueueName == "" {
+		commentQueueName = "notifications"
+	}
+
 	return &Config{
-		Port:             port,
-		DatabaseURL:      dbURL,
-		RabbitMQURL:      rabbitMQURL,
-		CommentQueueName: commentQueueName,
+		Port:                  port,
+		DatabaseURL:           dbURL,
+		RabbitMQURL:           rabbitMQURL,
+		CommentQueueName:      commentQueueName,
+		NotificationQueueName: notificationsQueueName,
 	}, nil
 }

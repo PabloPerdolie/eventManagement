@@ -22,16 +22,22 @@ type EventParticipantRepo interface {
 	Create(ctx context.Context, participant model.EventParticipant) (int, error)
 }
 
+type NotifyPublisher interface {
+	Publish(ctx context.Context, data []byte) error
+}
+
 type Service struct {
 	eventRepo       EventRepo
 	participantRepo EventParticipantRepo
+	notifyPbl       NotifyPublisher
 	logger          *zap.SugaredLogger
 }
 
-func NewService(eventRepo EventRepo, participantRepo EventParticipantRepo, logger *zap.SugaredLogger) Service {
+func NewService(eventRepo EventRepo, participantRepo EventParticipantRepo, notifyPbl NotifyPublisher, logger *zap.SugaredLogger) Service {
 	return Service{
 		eventRepo:       eventRepo,
 		participantRepo: participantRepo,
+		notifyPbl:       notifyPbl,
 		logger:          logger,
 	}
 }

@@ -3,7 +3,8 @@ package domain
 import "time"
 
 type EventParticipantCreateRequest struct {
-	UserID int `json:"user_id" binding:"required"`
+	EventTitle string `json:"event_title" binding:"required"`
+	UserID     int    `json:"user_id" binding:"required"`
 }
 
 type EventParticipantUpdateRequest struct {

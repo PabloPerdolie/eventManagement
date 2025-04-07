@@ -7,9 +7,10 @@ import (
 )
 
 var SupportedEvents = map[string]bool{
-	"event_created": true,
-	"task_assigned": true,
-	"expense_added": true,
+	"event_created":     true,
+	"task_assigned":     true,
+	"expense_added":     true,
+	"participant_added": true,
 }
 
 func GenerateEmailContent(msg domain.NotificationMessage) (*model.EmailContent, error) {
@@ -37,6 +38,15 @@ func GenerateEmailContent(msg domain.NotificationMessage) (*model.EmailContent, 
 		if eventID, ok := msg.Data["event_id"].(float64); ok {
 			body += fmt.Sprintf(" Event ID: %.0f", eventID)
 		}
+
+	case "participant_added":
+		eventName, ok := msg.Data["event_name"].(string)
+		if !ok {
+			return nil, model.ErrInvalidNotificationData
+		}
+
+		subject = "You added as a participant"
+		body = fmt.Sprintf("You added as a participant of event: '%s'.", eventName)
 
 	case "task_assigned":
 		taskName, ok := msg.Data["task_name"].(string)
