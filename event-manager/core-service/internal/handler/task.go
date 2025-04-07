@@ -96,7 +96,7 @@ func (h *TaskController) List(c *gin.Context) {
 	size, _ := strconv.Atoi(c.DefaultQuery("size", "10"))
 
 	eventIdStr := c.Query("event_id")
-	userIdStr := c.Query("user_id")
+	userIdStr := c.GetHeader("X-User-Id")
 
 	var eventId *int
 	if eventIdStr != "" {

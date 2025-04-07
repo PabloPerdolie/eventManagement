@@ -246,7 +246,7 @@ func userToResponse(user *model.User) domain.UserResponse {
 		Email:     user.Email,
 		CreatedAt: user.CreatedAt,
 		IsActive:  user.IsActive,
-		//Role: user.Role, // todo
+		Role:      user.Role,
 	}
 }
 

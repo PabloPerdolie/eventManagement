@@ -1,0 +1,402 @@
+basePath: /api/v1
+definitions:
+  domain.AuthResponse:
+    description: Ответ на успешную аутентификацию
+    properties:
+      access_token:
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        type: string
+      expires_in:
+        example: 3600
+        type: integer
+      refresh_token:
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        type: string
+      user:
+        $ref: '#/definitions/domain.UserResponse'
+    type: object
+  domain.ErrorResponse:
+    description: Ответ сервера при возникновении ошибки
+    properties:
+      error:
+        example: Unauthorized
+        type: string
+      message:
+        example: Invalid or expired token
+        type: string
+    type: object
+  domain.RefreshTokenRequest:
+    description: Запрос на обновление токена доступа
+    properties:
+      refresh_token:
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        type: string
+    required:
+    - refresh_token
+    type: object
+  domain.SuccessResponse:
+    description: Ответ сервера при успешном выполнении операции
+    properties:
+      data: {}
+      message:
+        example: Operation completed successfully
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+  domain.TokenResponse:
+    description: Ответ с токеном доступа
+    properties:
+      access_token:
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        type: string
+      expires_in:
+        example: 3600
+        type: integer
+    type: object
+  domain.UserLoginRequest:
+    description: Запрос на вход пользователя в систему
+    properties:
+      password:
+        example: password123
+        type: string
+      username:
+        example: johndoe
+        type: string
+    required:
+    - password
+    - username
+    type: object
+  domain.UserRegisterRequest:
+    description: Запрос на регистрацию нового пользователя
+    properties:
+      email:
+        example: user@example.com
+        type: string
+      password:
+        example: password123
+        minLength: 8
+        type: string
+      username:
+        example: johndoe
+        type: string
+    required:
+    - email
+    - password
+    - username
+    type: object
+  domain.UserResponse:
+    description: Информация о пользователе
+    properties:
+      created_at:
+        example: "2023-01-01T00:00:00Z"
+        type: string
+      email:
+        example: user@example.com
+        type: string
+      id:
+        example: 1
+        type: integer
+      role:
+        allOf:
+        - $ref: '#/definitions/domain.UserRole'
+        example: user
+      username:
+        example: johndoe
+        type: string
+    type: object
+  domain.UserRole:
+    enum:
+    - user
+    - admin
+    type: string
+    x-enum-varnames:
+    - RoleUser
+    - RoleAdmin
+host: localhost:8081
+info:
+  contact: {}
+  description: Authentication and routing gateway for event management services
+  title: API Gateway for Event Management App
+  version: "1.0"
+paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Login a user with the provided credentials
+      parameters:
+      - description: User credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/domain.UserLoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.AuthResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/domain.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/domain.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/domain.ErrorResponse'
+      summary: Login a user
+      tags:
+      - auth
+  /auth/logout:
+    post:
+      consumes:
+      - application/json
+      description: Logout a user by invalidating their token
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.SuccessResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/domain.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/domain.ErrorResponse'
+      security:
+      - Bearer: []
+      summary: Logout a user
+      tags:
+      - auth
+  /auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Refresh an access token using a valid refresh token
+      parameters:
+      - description: Refresh token
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/domain.RefreshTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.TokenResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/domain.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/domain.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/domain.ErrorResponse'
+      summary: Refresh a token
+      tags:
+      - auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Register a new user in the system
+      parameters:
+      - description: User registration data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/domain.UserRegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/domain.AuthResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/domain.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/domain.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/domain.ErrorResponse'
+      summary: Register a new user
+      tags:
+      - auth
+  /comments/{path}:
+    delete:
+      consumes:
+      - application/json
+      description: Forward requests to the Communication Service
+      parameters:
+      - description: Request path
+        in: path
+        name: path
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - Bearer: []
+      summary: Proxy to Communication Service
+      tags:
+      - proxy
+    get:
+      consumes:
+      - application/json
+      description: Forward requests to the Communication Service
+      parameters:
+      - description: Request path
+        in: path
+        name: path
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - Bearer: []
+      summary: Proxy to Communication Service
+      tags:
+      - proxy
+    post:
+      consumes:
+      - application/json
+      description: Forward requests to the Communication Service
+      parameters:
+      - description: Request path
+        in: path
+        name: path
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - Bearer: []
+      summary: Proxy to Communication Service
+      tags:
+      - proxy
+    put:
+      consumes:
+      - application/json
+      description: Forward requests to the Communication Service
+      parameters:
+      - description: Request path
+        in: path
+        name: path
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - Bearer: []
+      summary: Proxy to Communication Service
+      tags:
+      - proxy
+  /events/{path}:
+    delete:
+      consumes:
+      - application/json
+      description: Forward requests to the Event Service
+      parameters:
+      - description: Request path
+        in: path
+        name: path
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - Bearer: []
+      summary: Proxy to Event Service
+      tags:
+      - proxy
+    get:
+      consumes:
+      - application/json
+      description: Forward requests to the Event Service
+      parameters:
+      - description: Request path
+        in: path
+        name: path
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - Bearer: []
+      summary: Proxy to Event Service
+      tags:
+      - proxy
+    post:
+      consumes:
+      - application/json
+      description: Forward requests to the Event Service
+      parameters:
+      - description: Request path
+        in: path
+        name: path
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - Bearer: []
+      summary: Proxy to Event Service
+      tags:
+      - proxy
+    put:
+      consumes:
+      - application/json
+      description: Forward requests to the Event Service
+      parameters:
+      - description: Request path
+        in: path
+        name: path
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - Bearer: []
+      summary: Proxy to Event Service
+      tags:
+      - proxy
+securityDefinitions:
+  Bearer:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

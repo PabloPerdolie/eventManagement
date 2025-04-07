@@ -75,7 +75,7 @@ func (h *ParticipantController) Delete(c *gin.Context) {
 }
 
 func (h *ParticipantController) ListByUser(c *gin.Context) {
-	userIdStr := c.Param("user_id")
+	userIdStr := c.GetHeader("X-User-Id")
 	userId, err := strconv.Atoi(userIdStr)
 	if err != nil {
 		h.logger.Errorw("Invalid user Id", "error", err, "id", userId)

@@ -53,7 +53,7 @@ type UserResponse struct {
 	Email     string    `json:"email"`
 	CreatedAt time.Time `json:"created_at"`
 	IsActive  bool      `json:"is_active"`
-	Role      UserRole  `json:"role"`
+	Role      string    `json:"role"`
 }
 
 // UsersResponse represents a list of users
