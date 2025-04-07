@@ -24,6 +24,13 @@ func New(service Service) *Handler {
 	}
 }
 
+// HealthCheck godoc
+// @Summary Проверка состояния сервиса
+// @Description Проверяет доступность и работоспособность сервиса
+// @Tags health
+// @Produce json
+// @Success 200 {object} domain.Health "Информация о состоянии сервиса"
+// @Router /health [get]
 func (h *Handler) HealthCheck(c *gin.Context) {
 	health := domain.Health{
 		Status:    "UP",
@@ -35,6 +42,13 @@ func (h *Handler) HealthCheck(c *gin.Context) {
 	c.JSON(http.StatusOK, health)
 }
 
+// ServiceInfo godoc
+// @Summary Информация о сервисе
+// @Description Возвращает детальную информацию о сервисе и его статистике
+// @Tags health
+// @Produce json
+// @Success 200 {object} map[string]interface{} "Статистика и информация о сервисе"
+// @Router /info [get]
 func (h *Handler) ServiceInfo(c *gin.Context) {
 	stats := h.service.GetStats()
 	stats["service"] = "notification-service"

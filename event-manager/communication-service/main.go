@@ -13,12 +13,16 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 	"go.uber.org/zap"
+
+	_ "github.com/PabloPerdolie/event-manager/communication-service/docs"
 )
 
 // @title Communication Service for Event Management App
 // @version 1.0
-// @description Service for comments CRUD
+// @description Service for handling event communication, including comments and notifications
 // @host localhost:8083
 // @BasePath /api/v1
 func main() {
@@ -42,6 +46,10 @@ func main() {
 	defer locator.Close()
 
 	router := gin.Default()
+
+	// Добавляем endpoint для Swagger UI
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
 	routes.SetupRoutes(router, &locator.Controllers)
 
 	srv := &http.Server{

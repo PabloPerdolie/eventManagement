@@ -2,8 +2,6 @@ package repository
 
 import (
 	"context"
-	"database/sql"
-
 	"github.com/PabloPerdolie/event-manager/communication-service/internal/model"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
@@ -21,10 +19,10 @@ func New(db *sqlx.DB) Comment {
 
 func (r Comment) Insert(ctx context.Context, comment model.Comment) (int, error) {
 	query := `
-		INSERT INTO comments(event_id, sender_id, content) 
-		VALUES ($1, $2, $3) RETURNING comment_id`
+		INSERT INTO comments(event_id, sender_id, content, task_id) 
+		VALUES ($1, $2, $3, $4) RETURNING comment_id`
 
-	row := r.db.QueryRowContext(ctx, query, comment.EventId, comment.SenderId, comment.Content)
+	row := r.db.QueryRowContext(ctx, query, comment.EventId, comment.SenderId, comment.Content, comment.TaskId)
 	if row.Err() != nil {
 		return 0, errors.WithMessage(row.Err(), "insert comment")
 	}
@@ -38,40 +36,9 @@ func (r Comment) Insert(ctx context.Context, comment model.Comment) (int, error)
 	return id, nil
 }
 
-func (r Comment) GetById(ctx context.Context, commentId int) (model.Comment, error) {
-	query := `
-		SELECT comment_id, event_id, sender_id, content, created_at, is_deleted, is_read
-		FROM comments 
-		WHERE comment_id = $1 AND is_deleted = false`
-
-	row := r.db.QueryRowContext(ctx, query, commentId)
-	if row.Err() != nil {
-		return model.Comment{}, errors.WithMessage(row.Err(), "get comment by id")
-	}
-
-	var comment model.Comment
-	err := row.Scan(
-		&comment.CommentId,
-		&comment.EventId,
-		&comment.SenderId,
-		&comment.Content,
-		&comment.CreatedAt,
-		&comment.IsDeleted,
-		&comment.IsRead,
-	)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return model.Comment{}, errors.New("comment not found")
-		}
-		return model.Comment{}, errors.WithMessage(err, "scan comment")
-	}
-
-	return comment, nil
-}
-
 func (r Comment) GetByEventId(ctx context.Context, eventId int) ([]model.Comment, error) {
 	query := `
-		SELECT comment_id, event_id, sender_id, content, created_at, is_deleted, is_read
+		SELECT comment_id, event_id, sender_id, task_id, content, created_at, is_deleted, is_read
 		FROM comments 
 		WHERE event_id = $1 AND is_deleted = false
 		ORDER BY created_at DESC`
@@ -89,6 +56,7 @@ func (r Comment) GetByEventId(ctx context.Context, eventId int) ([]model.Comment
 			&comment.CommentId,
 			&comment.EventId,
 			&comment.SenderId,
+			&comment.TaskId,
 			&comment.Content,
 			&comment.CreatedAt,
 			&comment.IsDeleted,

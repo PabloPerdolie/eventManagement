@@ -18,7 +18,6 @@ func SetupRoutes(router *gin.Engine, c *Controllers) {
 
 		comments := v1.Group("/comments")
 		{
-			comments.GET("/:id", c.CommentCtrl.GetCommentById)
 			comments.GET("/event/:eventId", c.CommentCtrl.GetCommentsByEventId)
 			comments.DELETE("/:id", c.CommentCtrl.DeleteComment)
 			comments.PUT("/:id/read", c.CommentCtrl.MarkCommentAsRead)

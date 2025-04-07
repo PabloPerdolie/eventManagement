@@ -1,0 +1,183 @@
+basePath: /api/v1
+definitions:
+  domain.Health:
+    properties:
+      service:
+        type: string
+      status:
+        type: string
+      timestamp:
+        type: string
+      version:
+        type: string
+    type: object
+  model.Comment:
+    properties:
+      commentId:
+        type: integer
+      content:
+        type: string
+      createdAt:
+        type: string
+      eventId:
+        type: integer
+      isDeleted:
+        type: boolean
+      isRead:
+        type: boolean
+      senderId:
+        type: integer
+    type: object
+host: localhost:8083
+info:
+  contact: {}
+  description: Service for handling event communication, including comments and notifications
+  title: Communication Service for Event Management App
+  version: "1.0"
+paths:
+  /comments/{id}:
+    delete:
+      description: Удаляет комментарий по его идентификатору
+      parameters:
+      - description: ID комментария
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Комментарий успешно удален
+        "400":
+          description: Некорректный ID комментария
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Удалить комментарий
+      tags:
+      - comments
+    get:
+      description: Возвращает комментарий по его идентификатору
+      parameters:
+      - description: ID комментария
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Комментарий
+          schema:
+            $ref: '#/definitions/model.Comment'
+        "400":
+          description: Некорректный ID комментария
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Комментарий не найден
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Получить комментарий по ID
+      tags:
+      - comments
+  /comments/{id}/read:
+    put:
+      description: Отмечает комментарий как прочитанный по его идентификатору
+      parameters:
+      - description: ID комментария
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Комментарий успешно отмечен как прочитанный
+        "400":
+          description: Некорректный ID комментария
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Отметить комментарий как прочитанный
+      tags:
+      - comments
+  /comments/event/{eventId}:
+    get:
+      description: Возвращает все комментарии, связанные с указанным событием
+      parameters:
+      - description: ID события
+        in: path
+        name: eventId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Список комментариев
+          schema:
+            items:
+              $ref: '#/definitions/model.Comment'
+            type: array
+        "400":
+          description: Некорректный ID события
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Получить комментарии события
+      tags:
+      - comments
+  /health:
+    get:
+      description: Проверяет доступность и работоспособность сервиса
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Информация о состоянии сервиса
+          schema:
+            $ref: '#/definitions/domain.Health'
+      summary: Проверка состояния сервиса
+      tags:
+      - health
+  /info:
+    get:
+      description: Возвращает детальную информацию о сервисе и его статистике
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Статистика и информация о сервисе
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Информация о сервисе
+      tags:
+      - health
+swagger: "2.0"
