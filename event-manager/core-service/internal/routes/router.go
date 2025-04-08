@@ -25,7 +25,6 @@ func SetupRoutes(router *gin.Engine, controllers *Controllers) {
 		{
 			events.GET("", controllers.EventCtrl.List)
 			events.POST("", controllers.EventCtrl.Create)
-			//events.GET("/:id", controllers.EventCtrl.GetById)
 			//events.PUT("/:id", controllers.EventCtrl.Update)
 			events.DELETE("/:event_id", controllers.EventCtrl.Delete)
 			events.GET("/:event_id", controllers.EventCtrl.EventSummary)
@@ -33,10 +32,7 @@ func SetupRoutes(router *gin.Engine, controllers *Controllers) {
 			// Маршруты участников событий
 			participants := events.Group("/:event_id/participants")
 			{
-				//participants.GET("", controllers.EventParticipantCtrl.ListByEvent)
 				participants.POST("", controllers.EventParticipantCtrl.Create)
-				//participants.GET("/:user_id", controllers.EventParticipantCtrl.GetById)
-				//participants.PUT("/:user_id", controllers.EventParticipantCtrl.Update)
 				participants.DELETE("/:user_id", controllers.EventParticipantCtrl.Delete)
 			}
 		}
@@ -46,17 +42,8 @@ func SetupRoutes(router *gin.Engine, controllers *Controllers) {
 		{
 			tasks.GET("", controllers.TaskCtrl.List)
 			tasks.POST("", controllers.TaskCtrl.Create)
-			//tasks.GET("/:id", controllers.TaskCtrl.GetById)
 			tasks.PUT("/:task_id", controllers.TaskCtrl.Update)
 			tasks.DELETE("/:task_id", controllers.TaskCtrl.Delete)
-
-			// Маршруты назначений задач
-			//assignments := tasks.Group("/:id/assignments")
-			//{
-			//	assignments.GET("", controllers.TaskCtrl.ListByTask)
-			//	assignments.POST("", controllers.TaskCtrl.Create)
-			//	assignments.DELETE("/:assignment_id", controllers.TaskCtrl.Delete)
-			//}
 		}
 
 		// Маршруты расходов

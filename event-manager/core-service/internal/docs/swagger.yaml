@@ -19,6 +19,8 @@ definitions:
     type: object
   domain.EventData:
     properties:
+      comments:
+        $ref: '#/definitions/model.CommunicationServiceResponse'
       eventData:
         $ref: '#/definitions/domain.EventResponse'
       eventParticipants:
@@ -185,6 +187,32 @@ definitions:
         type: string
       username:
         type: string
+    type: object
+  model.Comment:
+    properties:
+      commentId:
+        type: integer
+      content:
+        type: string
+      createdAt:
+        type: string
+      eventId:
+        type: integer
+      isDeleted:
+        type: boolean
+      isRead:
+        type: boolean
+      senderId:
+        type: integer
+      taskId:
+        type: integer
+    type: object
+  model.CommunicationServiceResponse:
+    properties:
+      comments:
+        items:
+          $ref: '#/definitions/model.Comment'
+        type: array
     type: object
 host: localhost:8080
 info:

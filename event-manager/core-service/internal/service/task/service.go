@@ -77,6 +77,7 @@ func (s Service) Create(ctx context.Context, req domain.TaskCreateRequest) (*dom
 
 	return &domain.TaskResponse{
 		Id:          id,
+		EventId:     task.EventId,
 		AssignedTo:  req.AssignedTo,
 		ParentID:    task.ParentId,
 		Title:       task.Title,

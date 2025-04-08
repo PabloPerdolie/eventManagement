@@ -93,7 +93,7 @@ func (h *TaskController) Update(c *gin.Context) {
 		return
 	}
 
-	c.Status(http.StatusNoContent)
+	c.Status(http.StatusOK)
 }
 
 // Delete godoc

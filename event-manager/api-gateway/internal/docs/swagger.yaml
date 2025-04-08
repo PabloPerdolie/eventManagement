@@ -28,7 +28,6 @@ definitions:
     required:
     - content
     - event_id
-    - sender_id
     type: object
   domain.ErrorResponse:
     description: Ответ сервера при возникновении ошибки

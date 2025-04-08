@@ -28,11 +28,11 @@ func (r CommunicationServiceRepo) GetByEventId(_ context.Context, eventId int) (
 		return nil, errors.WithMessagef(err, "invoke request by endpoint: %s", getEventById)
 	}
 
-	var comments model.CommunicationServiceResponse
+	var comments []model.Comment
 	err = json.Unmarshal(resp, &comments)
 	if err != nil {
 		return nil, errors.WithMessage(err, "unmarshal response")
 	}
 
-	return &comments, nil
+	return &model.CommunicationServiceResponse{Comments: comments}, nil
 }
