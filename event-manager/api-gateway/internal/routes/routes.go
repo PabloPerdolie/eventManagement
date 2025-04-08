@@ -84,12 +84,13 @@ func setupProtectedRoutes(api *gin.RouterGroup, c *Controllers, authMiddleware *
 func setupServiceProxies(api *gin.RouterGroup, c *Controllers, authMiddleware *middleware.AuthMiddleware) {
 	eventsProxy := api.Group("/events", authMiddleware.Authenticate())
 	{
-		eventsProxy.Any("/*path", c.ProxyCtrl.ProxyToEventService)
+		eventsProxy.Any("", c.ProxyCtrl.ProxyToEventService)      // /api/v1/events
+		eventsProxy.Any("/*any", c.ProxyCtrl.ProxyToEventService) // всё остальное
 	}
 
 	comments := api.Group("/comments", authMiddleware.Authenticate())
 	{
-		comments.GET("/create", c.CommentCtrl.Create)
+		comments.POST("/create", c.CommentCtrl.Create)
 	}
 }
 

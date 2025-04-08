@@ -9,7 +9,7 @@ type Config struct {
 	Port                  string
 	DatabaseURL           string
 	RabbitMQURL           string
-	CommentQueueName      string
+	CommentServiceUrl     string
 	NotificationQueueName string
 }
 
@@ -29,21 +29,21 @@ func New() (*Config, error) {
 		rabbitMQURL = "amqp://guest:guest@localhost:5672/"
 	}
 
-	commentQueueName := os.Getenv("COMMENT_QUEUE_NAME")
-	if commentQueueName == "" {
-		commentQueueName = "comments"
+	notificationsQueueName := os.Getenv("NOTIFICATION_QUEUE_NAME")
+	if notificationsQueueName == "" {
+		notificationsQueueName = "notifications"
 	}
 
-	notificationsQueueName := os.Getenv("NOTIFICATION_QUEUE_NAME")
-	if commentQueueName == "" {
-		commentQueueName = "notifications"
+	commentServiceUrl := os.Getenv("COMMUNICATION_SERVICE_URL")
+	if commentServiceUrl == "" {
+		commentServiceUrl = "http://communication-service:8083"
 	}
 
 	return &Config{
 		Port:                  port,
 		DatabaseURL:           dbURL,
 		RabbitMQURL:           rabbitMQURL,
-		CommentQueueName:      commentQueueName,
+		CommentServiceUrl:     commentServiceUrl,
 		NotificationQueueName: notificationsQueueName,
 	}, nil
 }

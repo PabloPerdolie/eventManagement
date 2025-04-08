@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 	"net/http/httputil"
+	"strconv"
 
 	"github.com/PabloPerdolie/event-manager/api-gateway/internal/domain"
 	"github.com/gin-gonic/gin"
@@ -45,7 +46,7 @@ func (h *Proxy) ProxyToEventService(c *gin.Context) {
 	}
 
 	if userId, err := getUserIdFromContext(c); err == nil {
-		c.Request.Header.Set("X-User-Id", string(rune(userId)))
+		c.Request.Header.Set("X-User-Id", strconv.Itoa(userId))
 	}
 
 	proxy.ServeHTTP(c.Writer, c.Request)

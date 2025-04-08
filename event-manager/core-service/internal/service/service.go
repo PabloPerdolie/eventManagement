@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"github.com/PabloPerdolie/event-manager/core-service/internal/domain"
+	"github.com/PabloPerdolie/event-manager/core-service/internal/model"
 	"github.com/pkg/errors"
 )
 
@@ -35,17 +36,23 @@ type TaskService interface {
 	UpdateStatus(ctx context.Context, id int, status domain.TaskStatus) error
 }
 
+type CommentsRepo interface {
+	GetByEventId(_ context.Context, eventId int) (*model.CommunicationServiceResponse, error)
+}
+
 type Service struct {
 	taskService        TaskService
 	participantService ParticipantService
 	eventService       EventService
+	commentsRepo       CommentsRepo
 }
 
-func NewService(taskService TaskService, participantService ParticipantService, eventService EventService) Service {
+func NewService(taskService TaskService, participantService ParticipantService, eventService EventService, commentsRepo CommentsRepo) Service {
 	return Service{
 		taskService:        taskService,
 		participantService: participantService,
 		eventService:       eventService,
+		commentsRepo:       commentsRepo,
 	}
 }
 
@@ -65,9 +72,15 @@ func (s Service) GetEventSummary(ctx context.Context, eventId int) (*domain.Even
 		return nil, errors.WithMessage(err, "get participants by event id")
 	}
 
+	comments, err := s.commentsRepo.GetByEventId(ctx, eventId)
+	if err != nil {
+		return nil, errors.WithMessage(err, "get comments by event id")
+	}
+
 	return &domain.EventData{
 		EventParticipants: *participants,
 		EventData:         *event,
 		Tasks:             *tasks,
+		Comments:          *comments,
 	}, nil
 }

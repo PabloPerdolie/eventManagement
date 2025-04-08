@@ -79,7 +79,7 @@ func handleError(c *gin.Context, err error) {
 }
 
 func getUserIdFromContext(c *gin.Context) (int, error) {
-	userId, exists := c.Get("userId")
+	userId, exists := c.Get("user_id")
 	if !exists {
 		return 0, errors.New("user Id not found in context")
 	}
