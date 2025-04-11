@@ -4,7 +4,9 @@ import "time"
 
 type EventParticipantCreateRequest struct {
 	EventTitle string `json:"event_title" binding:"required"`
-	UserID     int    `json:"user_id" binding:"required"`
+	UserID     int    `json:"user_id"`
+	Username   string `json:"username"`
+	Email      string `json:"email"`
 }
 
 type EventParticipantUpdateRequest struct {

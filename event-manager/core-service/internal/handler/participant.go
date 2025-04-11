@@ -37,8 +37,8 @@ func NewParticipantHandler(service ParticipantService, logger *zap.SugaredLogger
 // @Accept json
 // @Produce json
 // @Param event_id path int true "ID события"
-// @Param request body domain.EventParticipantCreateRequest true "Данные для добавления участника"
-// @Success 201 {object} map[string]interface{} "Возвращает ID созданного участия"
+// @Param request body domain.EventParticipantCreateRequest true "Данные для добавления участника (необходимо указать либо user_id, либо username)"
+// @Success 201 {object} domain.EventParticipantResponse "Информация о созданном участии"
 // @Failure 400 {object} map[string]interface{} "Ошибка валидации или некорректный ID события"
 // @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
 // @Router /events/{event_id}/participants [post]
@@ -58,14 +58,21 @@ func (h *ParticipantController) Create(c *gin.Context) {
 		return
 	}
 
-	id, err := h.service.Create(c.Request.Context(), eventId, req)
+	// Проверка наличия либо user_id, либо username
+	if req.UserID == 0 && req.Username == "" {
+		h.logger.Errorw("Missing user identification", "error", "either user_id or username must be provided")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "either user_id or username must be provided"})
+		return
+	}
+
+	participant, err := h.service.Create(c.Request.Context(), eventId, req)
 	if err != nil {
 		h.logger.Errorw("Failed to create event participant", "error", err, "eventId", eventId)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"id": id})
+	c.JSON(http.StatusCreated, participant)
 }
 
 // Delete godoc
@@ -137,4 +144,58 @@ func (h *ParticipantController) ListByUser(c *gin.Context) {
 	c.JSON(http.StatusOK, participants)
 }
 
-// todo confirm + decline participation
+// ConfirmParticipation godoc
+// @Summary Подтвердить участие в событии
+// @Description Подтверждает участие пользователя в событии
+// @Tags participants
+// @Produce json
+// @Param event_part_id path int true "ID участия в событии"
+// @Success 204 "Участие успешно подтверждено"
+// @Failure 400 {object} map[string]interface{} "Некорректный ID участия"
+// @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
+// @Router /events/participants/{event_part_id}/confirm [put]
+func (h *ParticipantController) ConfirmParticipation(c *gin.Context) {
+	eventPartIdStr := c.Param("event_part_id")
+	eventPartId, err := strconv.Atoi(eventPartIdStr)
+	if err != nil {
+		h.logger.Errorw("Invalid event participant Id", "error", err, "id", eventPartIdStr)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid event participant Id"})
+		return
+	}
+
+	if err := h.service.ConfirmParticipation(c.Request.Context(), eventPartId); err != nil {
+		h.logger.Errorw("Failed to confirm participation", "error", err, "eventPartId", eventPartId)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+}
+
+// DeclineParticipation godoc
+// @Summary Отклонить участие в событии
+// @Description Отклоняет участие пользователя в событии
+// @Tags participants
+// @Produce json
+// @Param event_part_id path int true "ID участия в событии"
+// @Success 204 "Участие успешно отклонено"
+// @Failure 400 {object} map[string]interface{} "Некорректный ID участия"
+// @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера"
+// @Router /events/participants/{event_part_id}/decline [put]
+func (h *ParticipantController) DeclineParticipation(c *gin.Context) {
+	eventPartIdStr := c.Param("event_part_id")
+	eventPartId, err := strconv.Atoi(eventPartIdStr)
+	if err != nil {
+		h.logger.Errorw("Invalid event participant Id", "error", err, "id", eventPartIdStr)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid event participant Id"})
+		return
+	}
+
+	if err := h.service.DeclineParticipation(c.Request.Context(), eventPartId); err != nil {
+		h.logger.Errorw("Failed to decline participation", "error", err, "eventPartId", eventPartId)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+}

@@ -26,6 +26,7 @@ type ParticipantRepo interface {
 type UserRepo interface {
 	GetUserById(ctx context.Context, id int) (*model.User, error)
 	ListUsers(ctx context.Context, limit, offset int) ([]model.User, int, error)
+	GetUserByUsername(ctx context.Context, username string) (*model.User, error)
 }
 
 type Participant struct {
@@ -45,25 +46,40 @@ func NewParticipantService(repo ParticipantRepo, userRepo UserRepo, notifyPbl No
 }
 
 func (s Participant) Create(ctx context.Context, eventID int, req domain.EventParticipantCreateRequest) (*domain.EventParticipantResponse, error) {
-	user, err := s.userRepo.GetUserById(ctx, req.UserID)
-	if err != nil {
-		s.logger.Errorw("Failed to get user for participant creation", "error", err, "userID", req.UserID)
-		return nil, errors.WithMessage(err, "invalid user")
+	var user *model.User
+	var err error
+
+	if req.UserID != 0 {
+		// Поиск пользователя по ID
+		user, err = s.userRepo.GetUserById(ctx, req.UserID)
+		if err != nil {
+			s.logger.Errorw("Failed to get user for participant creation", "error", err, "userID", req.UserID)
+			return nil, errors.WithMessage(err, "invalid user")
+		}
+	} else if req.Username != "" {
+		// Поиск пользователя по Username
+		user, err = s.userRepo.GetUserByUsername(ctx, req.Username)
+		if err != nil {
+			s.logger.Errorw("Failed to get user for participant creation", "error", err, "username", req.Username)
+			return nil, errors.WithMessage(err, "invalid username")
+		}
+	} else {
+		return nil, errors.New("either user_id or username must be provided")
 	}
 
-	_, err = s.repo.GetByEventAndUser(ctx, eventID, req.UserID)
+	_, err = s.repo.GetByEventAndUser(ctx, eventID, user.UserId)
 	if err == nil {
 		return nil, model.ErrUserAlreadyAnParticipant
 	}
 	if !errors.Is(err, sql.ErrNoRows) {
-		s.logger.Errorw("Failed to check if participant exists", "error", err, "eventID", eventID, "userID", req.UserID)
+		s.logger.Errorw("Failed to check if participant exists", "error", err, "eventID", eventID, "userID", user.UserId)
 		return nil, errors.WithMessage(err, "check participant")
 	}
 
 	now := time.Now()
 	participant := model.EventParticipant{
 		EventID:     eventID,
-		UserID:      req.UserID,
+		UserID:      user.UserId,
 		Role:        model.RoleParticipant,
 		JoinedAt:    &now,
 		IsConfirmed: ptr(true), // Default to confirmed // todo
@@ -71,15 +87,20 @@ func (s Participant) Create(ctx context.Context, eventID int, req domain.EventPa
 
 	id, err := s.repo.Create(ctx, participant)
 	if err != nil {
-		s.logger.Errorw("Failed to create participant", "error", err, "eventID", eventID, "userID", req.UserID)
+		s.logger.Errorw("Failed to create participant", "error", err, "eventID", eventID, "userID", user.UserId)
 		return nil, errors.WithMessage(err, "create participant")
+	}
+
+	emailToNotify := user.Email
+	if req.Email != "" {
+		emailToNotify = req.Email
 	}
 
 	data := map[string]any{
 		"event": "participant_added",
 		"data": map[string]any{
 			"event_name": req.EventTitle,
-			"user_email": user.Email,
+			"user_email": emailToNotify,
 		},
 	}
 

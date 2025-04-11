@@ -7,6 +7,7 @@ import (
 	"github.com/PabloPerdolie/event-manager/core-service/internal/routes"
 	"github.com/PabloPerdolie/event-manager/core-service/internal/service"
 	"github.com/PabloPerdolie/event-manager/core-service/internal/service/event"
+	"github.com/PabloPerdolie/event-manager/core-service/internal/service/expense"
 	"github.com/PabloPerdolie/event-manager/core-service/internal/service/task"
 	"github.com/PabloPerdolie/event-manager/core-service/pkg/http/client"
 	"github.com/PabloPerdolie/event-manager/core-service/pkg/postgres"
@@ -45,26 +46,35 @@ func NewLocator(cfg *config.Config, logger *zap.SugaredLogger) (*ServiceLocator,
 	participantRepo := repository.NewParticipant(db)
 	commentsServiceRepo := repository.NewCommunicationService(&commCli)
 
+	// Репозитории для расходов
+	expenseRepo := repository.NewExpense(db)
+	expenseShareRepo := repository.NewExpenseShare(db)
+
 	healthService := service.NewHealthService(db, logger)
 
 	eventService := event.NewService(eventRepo, participantRepo, pblRepo, logger)
 	eventParticipantService := event.NewParticipantService(participantRepo, userRepo, pblRepo, logger)
 	taskService := task.NewService(taskRepo, assignmentRepo, logger)
 
-	commonService := service.NewService(taskService, eventParticipantService, eventService, commentsServiceRepo)
+	// Сервис для работы с расходами
+	expenseService := expense.NewService(expenseRepo, expenseShareRepo, logger)
+
+	commonService := service.NewService(taskService, eventParticipantService, eventService, commentsServiceRepo, expenseService)
 
 	healthCtrl := handler.NewHealthController(healthService, logger)
 	eventCtrl := handler.NewEvent(commonService, eventService, logger)
 	eventParticipantCtrl := handler.NewParticipantHandler(eventParticipantService, logger)
 	taskCtrl := handler.NewTask(taskService, logger)
 
+	// Контроллер для работы с расходами
+	expenseCtrl := handler.NewExpenseController(expenseService)
+
 	controllers := routes.Controllers{
 		HealthCtrl:           healthCtrl,
 		EventCtrl:            eventCtrl,
 		EventParticipantCtrl: eventParticipantCtrl,
 		TaskCtrl:             taskCtrl,
-		//ExpenseCtrl:          expenseCtrl,
-		//ExpenseShareCtrl:     expenseShareCtrl,
+		ExpenseCtrl:          expenseCtrl,
 	}
 
 	return &ServiceLocator{

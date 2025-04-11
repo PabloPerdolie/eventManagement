@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/PabloPerdolie/event-manager/core-service/internal/domain"
 	"github.com/PabloPerdolie/event-manager/core-service/internal/model"
+	"github.com/PabloPerdolie/event-manager/core-service/internal/service/expense"
 	"github.com/pkg/errors"
 )
 
@@ -45,14 +46,16 @@ type Service struct {
 	participantService ParticipantService
 	eventService       EventService
 	commentsRepo       CommentsRepo
+	expenseService     expense.Service
 }
 
-func NewService(taskService TaskService, participantService ParticipantService, eventService EventService, commentsRepo CommentsRepo) Service {
+func NewService(taskService TaskService, participantService ParticipantService, eventService EventService, commentsRepo CommentsRepo, expenseService expense.Service) Service {
 	return Service{
 		taskService:        taskService,
 		participantService: participantService,
 		eventService:       eventService,
 		commentsRepo:       commentsRepo,
+		expenseService:     expenseService,
 	}
 }
 
@@ -77,10 +80,24 @@ func (s Service) GetEventSummary(ctx context.Context, eventId int) (*domain.Even
 		return nil, errors.WithMessage(err, "get comments by event id")
 	}
 
+	// Получаем информацию о расходах события
+	expenses, err := s.expenseService.ListExpensesByEvent(ctx, eventId, 1, 100)
+	if err != nil {
+		return nil, errors.WithMessage(err, "get expenses by event id")
+	}
+
+	// Получаем отчет о балансе
+	balanceReport, err := s.expenseService.GetEventBalanceReport(ctx, eventId)
+	if err != nil {
+		return nil, errors.WithMessage(err, "get balance report by event id")
+	}
+
 	return &domain.EventData{
 		EventParticipants: *participants,
 		EventData:         *event,
 		Tasks:             *tasks,
 		Comments:          *comments,
+		Expenses:          expenses,
+		BalanceReport:     balanceReport,
 	}, nil
 }

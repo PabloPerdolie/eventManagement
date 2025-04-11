@@ -248,6 +248,7 @@ func (s Service) convertToTasksResponse(ctx context.Context, tasks []model.Task)
 			EventId:     task.EventId,
 			Title:       task.Title,
 			Description: task.Description,
+			ParentID:    task.ParentId,
 			Priority:    task.Priority,
 			Status:      domain.TaskStatus(task.Status),
 			CreatedAt:   task.CreatedAt,

@@ -10,8 +10,7 @@ type Controllers struct {
 	EventCtrl            handler.EventController
 	EventParticipantCtrl handler.ParticipantController
 	TaskCtrl             handler.TaskController
-	//ExpenseCtrl          handler.ExpenseController
-	//ExpenseShareCtrl     handler.ExpenseShareController
+	ExpenseCtrl          handler.ExpenseController
 }
 
 func SetupRoutes(router *gin.Engine, controllers *Controllers) {
@@ -46,24 +45,12 @@ func SetupRoutes(router *gin.Engine, controllers *Controllers) {
 			tasks.DELETE("/:task_id", controllers.TaskCtrl.Delete)
 		}
 
-		// Маршруты расходов
-		//expenses := api.Group("/expenses")
-		//{
-		//	expenses.GET("", controllers.ExpenseCtrl.List)
-		//	expenses.POST("", controllers.ExpenseCtrl.Create)
-		//	expenses.GET("/:id", controllers.ExpenseCtrl.GetById)
-		//	expenses.PUT("/:id", controllers.ExpenseCtrl.Update)
-		//	expenses.DELETE("/:id", controllers.ExpenseCtrl.Delete)
-		//
-		//	// Маршруты долей расходов
-		//	shares := expenses.Group("/:id/shares")
-		//	{
-		//		shares.GET("", controllers.ExpenseShareCtrl.ListByExpense)
-		//		shares.POST("", controllers.ExpenseShareCtrl.Create)
-		//		shares.GET("/:share_id", controllers.ExpenseShareCtrl.GetById)
-		//		shares.PUT("/:share_id", controllers.ExpenseShareCtrl.Update)
-		//		shares.DELETE("/:share_id", controllers.ExpenseShareCtrl.Delete)
-		//	}
-		//}
+		// Маршруты расходов - создание, обновление и удаление
+		expenses := api.Group("/expenses")
+		{
+			expenses.POST("", controllers.ExpenseCtrl.Create)
+			expenses.PUT("/:id", controllers.ExpenseCtrl.Update)
+			expenses.DELETE("/:id", controllers.ExpenseCtrl.Delete)
+		}
 	}
 }

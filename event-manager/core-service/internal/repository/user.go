@@ -46,6 +46,33 @@ func (r User) GetUserById(ctx context.Context, id int) (*model.User, error) {
 	return &user, nil
 }
 
+func (r User) GetUserByUsername(ctx context.Context, username string) (*model.User, error) {
+	query := `
+		SELECT user_id, username, password_hash, email, is_active, is_deleted, role, created_at
+		FROM users
+		WHERE username = $1 AND is_deleted = FALSE
+	`
+	var user model.User
+	err := r.db.QueryRowContext(ctx, query, username).Scan(
+		&user.UserId,
+		&user.Username,
+		&user.PasswordHash,
+		&user.Email,
+		&user.IsActive,
+		&user.IsDeleted,
+		&user.Role,
+		&user.CreatedAt,
+	)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, model.ErrUserNotFound
+	}
+	if err != nil {
+		return nil, errors.WithMessage(err, "get user by username")
+	}
+
+	return &user, nil
+}
+
 func (r User) ListUsers(ctx context.Context, limit, offset int) ([]model.User, int, error) {
 	countQuery := `SELECT COUNT(*) FROM users WHERE is_deleted = FALSE`
 	var total int

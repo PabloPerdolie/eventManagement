@@ -1,5 +1,16 @@
 basePath: /api/v1
 definitions:
+  domain.BalanceReportResponse:
+    properties:
+      event_id:
+        type: integer
+      total_amount:
+        type: number
+      user_balances:
+        items:
+          $ref: '#/definitions/domain.UserBalance'
+        type: array
+    type: object
   domain.EventCreateRequest:
     properties:
       description:
@@ -19,24 +30,31 @@ definitions:
     type: object
   domain.EventData:
     properties:
+      balanceReport:
+        $ref: '#/definitions/domain.BalanceReportResponse'
       comments:
         $ref: '#/definitions/model.CommunicationServiceResponse'
       eventData:
         $ref: '#/definitions/domain.EventResponse'
       eventParticipants:
         $ref: '#/definitions/domain.EventParticipantsResponse'
+      expenses:
+        $ref: '#/definitions/domain.ExpensesResponse'
       tasks:
         $ref: '#/definitions/domain.TasksResponse'
     type: object
   domain.EventParticipantCreateRequest:
     properties:
+      email:
+        type: string
       event_title:
         type: string
       user_id:
         type: integer
+      username:
+        type: string
     required:
     - event_title
-    - user_id
     type: object
   domain.EventParticipantResponse:
     properties:
@@ -90,6 +108,80 @@ definitions:
           $ref: '#/definitions/domain.EventResponse'
         type: array
       total:
+        type: integer
+    type: object
+  domain.ExpenseCreateRequest:
+    properties:
+      amount:
+        type: number
+      created_by:
+        type: integer
+      currency:
+        type: string
+      description:
+        type: string
+      event_id:
+        type: integer
+      split_method:
+        type: string
+      user_ids:
+        items:
+          type: integer
+        type: array
+    required:
+    - amount
+    - created_by
+    - currency
+    - description
+    - event_id
+    - split_method
+    - user_ids
+    type: object
+  domain.ExpenseResponse:
+    properties:
+      amount:
+        type: number
+      created_at:
+        type: string
+      created_by:
+        type: integer
+      currency:
+        type: string
+      description:
+        type: string
+      event_id:
+        type: integer
+      expense_id:
+        type: integer
+      shares:
+        items:
+          $ref: '#/definitions/model.ExpenseShare'
+        type: array
+      split_method:
+        type: string
+    type: object
+  domain.ExpenseUpdateRequest:
+    properties:
+      amount:
+        type: number
+      currency:
+        type: string
+      description:
+        type: string
+      split_method:
+        type: string
+      user_ids:
+        items:
+          type: integer
+        type: array
+    type: object
+  domain.ExpensesResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/domain.ExpenseResponse'
+        type: array
+      total_count:
         type: integer
     type: object
   domain.TaskCreateRequest:
@@ -173,6 +265,15 @@ definitions:
       total:
         type: integer
     type: object
+  domain.UserBalance:
+    properties:
+      balance:
+        type: number
+      user_id:
+        type: integer
+      username:
+        type: string
+    type: object
   domain.UserResponse:
     properties:
       created_at:
@@ -213,6 +314,21 @@ definitions:
         items:
           $ref: '#/definitions/model.Comment'
         type: array
+    type: object
+  model.ExpenseShare:
+    properties:
+      amount:
+        type: number
+      expenseID:
+        type: integer
+      isPaid:
+        type: boolean
+      paidAt:
+        type: string
+      shareID:
+        type: integer
+      userID:
+        type: integer
     type: object
 host: localhost:8080
 info:
@@ -357,7 +473,8 @@ paths:
         name: event_id
         required: true
         type: integer
-      - description: Данные для добавления участника
+      - description: Данные для добавления участника (необходимо указать либо user_id,
+          либо username)
         in: body
         name: request
         required: true
@@ -367,10 +484,9 @@ paths:
       - application/json
       responses:
         "201":
-          description: Возвращает ID созданного участия
+          description: Информация о созданном участии
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/domain.EventParticipantResponse'
         "400":
           description: Ошибка валидации или некорректный ID события
           schema:
@@ -411,6 +527,181 @@ paths:
       summary: Удалить участника из события
       tags:
       - participants
+  /events/participants/{event_part_id}/confirm:
+    put:
+      description: Подтверждает участие пользователя в событии
+      parameters:
+      - description: ID участия в событии
+        in: path
+        name: event_part_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Участие успешно подтверждено
+        "400":
+          description: Некорректный ID участия
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Подтвердить участие в событии
+      tags:
+      - participants
+  /events/participants/{event_part_id}/decline:
+    put:
+      description: Отклоняет участие пользователя в событии
+      parameters:
+      - description: ID участия в событии
+        in: path
+        name: event_part_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Участие успешно отклонено
+        "400":
+          description: Некорректный ID участия
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Отклонить участие в событии
+      tags:
+      - participants
+  /expenses:
+    post:
+      consumes:
+      - application/json
+      description: Create a new expense with participants
+      parameters:
+      - description: Expense creation data
+        in: body
+        name: expense
+        required: true
+        schema:
+          $ref: '#/definitions/domain.ExpenseCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties:
+              type: integer
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create a new expense
+      tags:
+      - expenses
+  /expenses/{id}:
+    delete:
+      description: Delete an existing expense
+      parameters:
+      - description: Expense ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete expense
+      tags:
+      - expenses
+    put:
+      consumes:
+      - application/json
+      description: Update an existing expense
+      parameters:
+      - description: Expense ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Expense update data
+        in: body
+        name: expense
+        required: true
+        schema:
+          $ref: '#/definitions/domain.ExpenseUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Update expense
+      tags:
+      - expenses
   /health:
     get:
       description: Проверяет доступность и работоспособность сервиса

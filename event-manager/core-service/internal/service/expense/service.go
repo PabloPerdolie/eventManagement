@@ -1,431 +1,342 @@
 package expense
 
-//
-//import (
-//	"context"
-//	"errors"
-//	"fmt"
-//	"github.com/PabloPerdolie/event-manager/core-service/internal/model"
-//	"github.com/PabloPerdolie/event-manager/core-service/internal/repository/expense"
-//	"github.com/google/uuid"
-//	"go.uber.org/zap"
-//	"math"
-//)
-//
-//// Service provides expense-related operations
-//type Service interface {
-//	Create(ctx context.Context, req model.ExpenseCreateRequest) (int, error)
-//	GetById(ctx context.Context, id int) (model.ExpenseResponse, error)
-//	Update(ctx context.Context, id int, req model.ExpenseUpdateRequest) error
-//	Delete(ctx context.Context, id int) error
-//	ListByEvent(ctx context.Context, eventId int, page, size int) (model.ExpensesResponse, error)
-//	ListByUser(ctx context.Context, userId int, page, size int) (model.ExpensesResponse, error)
-//	GetEventTotalExpenses(ctx context.Context, eventId int) (float64, error)
-//	CreateShares(ctx context.Context, expenseId int, participants []int, method model.ExpenseSplitMethod) error
-//}
-//
-//type service struct {
-//	expenseRepo      expense.Repository
-//	expenseShareRepo expense.ShareRepository
-//	logger           *zap.SugaredLogger
-//}
-//
-//// NewService creates a new expense service
-//func NewService(expenseRepo expense.Repository, expenseShareRepo expense.ShareRepository, logger *zap.SugaredLogger) Service {
-//	return &service{
-//		expenseRepo:      expenseRepo,
-//		expenseShareRepo: expenseShareRepo,
-//		logger:           logger,
-//	}
-//}
-//
-//// Create creates a new expense
-//func (s *service) Create(ctx context.Context, req model.ExpenseCreateRequest) (int, error) {
-//	expense := model.Expense{
-//		EventId:     req.EventId,
-//		Description: req.Description,
-//		Amount:      req.Amount,
-//		Currency:    req.Currency,
-//		ExpenseDate: req.ExpenseDate,
-//		CreatedBy:   req.CreatedBy,
-//		SplitMethod: req.SplitMethod,
-//	}
-//
-//	id, err := s.expenseRepo.Create(ctx, expense)
-//	if err != nil {
-//		s.logger.Errorw("Failed to create expense", "error", err, "eventId", req.EventId)
-//		return uuid.Nil, fmt.Errorf("failed to create expense: %w", err)
-//	}
-//
-//	// Create expense shares if participants are provided
-//	if len(req.ParticipantIds) > 0 {
-//		err = s.CreateShares(ctx, id, req.ParticipantIds, req.SplitMethod)
-//		if err != nil {
-//			s.logger.Errorw("Failed to create expense shares", "error", err, "expenseId", id)
-//			// We don't return an error here, as the expense was already created successfully
-//		}
-//	}
-//
-//	return id, nil
-//}
-//
-//// CreateShares creates expense shares for participants based on the split method
-//func (s *service) CreateShares(ctx context.Context, expenseId int, participants []int, method model.ExpenseSplitMethod) error {
-//	// Get the expense to determine the amount to split
-//	expense, err := s.expenseRepo.GetById(ctx, expenseId)
-//	if err != nil {
-//		return errors.WithMessage(err, "")("failed to get expense for creating shares: %w", err)
-//	}
-//
-//	// Delete any existing shares for this expense
-//	err = s.expenseShareRepo.DeleteByExpense(ctx, expenseId)
-//	if err != nil {
-//		return errors.WithMessage(err, "")("failed to delete existing expense shares: %w", err)
-//	}
-//
-//	// Create shares based on the split method
-//	switch method {
-//	case model.ExpenseSplitMethodEqual:
-//		// Split equally among all participants
-//		if len(participants) == 0 {
-//			return errors.New("cannot split expense with no participants")
-//		}
-//
-//		shareAmount := expense.Amount / float64(len(participants))
-//		// Round to 2 decimal places
-//		shareAmount = math.Round(shareAmount*100) / 100
-//
-//		for _, participantId := range participants {
-//			share := model.ExpenseShare{
-//				ExpenseId:   expenseId,
-//				UserId:      participantId,
-//				ShareAmount: shareAmount,
-//				IsPaid:      false,
-//			}
-//
-//			_, err := s.expenseShareRepo.Create(ctx, share)
-//			if err != nil {
-//				s.logger.Warnw("Failed to create expense share", "error", err, "expenseId", expenseId, "userId", participantId)
-//				// Continue even if one share fails
-//			}
-//		}
-//
-//	case model.ExpenseSplitMethodPercentage:
-//		// This would typically be handled differently with custom percentages
-//		// For simplicity, we'll do equal percentages here
-//		if len(participants) == 0 {
-//			return errors.New("cannot split expense with no participants")
-//		}
-//
-//		shareAmount := expense.Amount / float64(len(participants))
-//		// Round to 2 decimal places
-//		shareAmount = math.Round(shareAmount*100) / 100
-//
-//		for _, participantId := range participants {
-//			share := model.ExpenseShare{
-//				ExpenseId:   expenseId,
-//				UserId:      participantId,
-//				ShareAmount: shareAmount,
-//				IsPaid:      false,
-//			}
-//
-//			_, err := s.expenseShareRepo.Create(ctx, share)
-//			if err != nil {
-//				s.logger.Warnw("Failed to create expense share", "error", err, "expenseId", expenseId, "userId", participantId)
-//				// Continue even if one share fails
-//			}
-//		}
-//
-//	case model.ExpenseSplitMethodCustom:
-//		// For custom splits, we would need additional data about how much each person pays
-//		// For now, we'll return an error
-//		return errors.New("custom split method requires additional data")
-//
-//	default:
-//		return errors.WithMessage(err, "")("unsupported split method: %s", method)
-//	}
-//
-//	return nil
-//}
-//
-//// GetById retrieves an expense by Id
-//func (s *service) GetById(ctx context.Context, id int) (model.ExpenseResponse, error) {
-//	expense, err := s.expenseRepo.GetById(ctx, id)
-//	if err != nil {
-//		s.logger.Errorw("Failed to get expense by Id", "error", err, "id", id)
-//		return model.ExpenseResponse{}, fmt.Errorf("failed to get expense: %w", err)
-//	}
-//
-//	// Get expense shares
-//	shares, err := s.expenseShareRepo.ListByExpense(ctx, id)
-//	if err != nil {
-//		s.logger.Warnw("Failed to get expense shares", "error", err, "expenseId", id)
-//		// Continue even if we can't get shares
-//	}
-//
-//	// Extract participant Ids and create share responses
-//	participantIds := make([]int, len(shares))
-//	shareResponses := make([]model.ExpenseShareResponse, len(shares))
-//	for i, share := range shares {
-//		participantIds[i] = share.UserId
-//		shareResponses[i] = model.ExpenseShareResponse{
-//			Id:          share.Id,
-//			ExpenseId:   share.ExpenseId,
-//			UserId:      share.UserId,
-//			ShareAmount: share.ShareAmount,
-//			IsPaid:      share.IsPaid,
-//			PaidAt:      share.PaidAt,
-//		}
-//	}
-//
-//	return model.ExpenseResponse{
-//		Id:             expense.Id,
-//		EventId:        expense.EventId,
-//		Description:    expense.Description,
-//		Amount:         expense.Amount,
-//		Currency:       expense.Currency,
-//		ExpenseDate:    expense.ExpenseDate,
-//		CreatedBy:      expense.CreatedBy,
-//		SplitMethod:    expense.SplitMethod,
-//		CreatedAt:      expense.CreatedAt,
-//		ParticipantIds: participantIds,
-//		Shares:         shareResponses,
-//	}, nil
-//}
-//
-//// Update updates an expense
-//func (s *service) Update(ctx context.Context, id int, req model.ExpenseUpdateRequest) error {
-//	expense, err := s.expenseRepo.GetById(ctx, id)
-//	if err != nil {
-//		s.logger.Errorw("Failed to get expense for update", "error", err, "id", id)
-//		return errors.WithMessage(err, "")("failed to get expense: %w", err)
-//	}
-//
-//	// Update fields if provided
-//	if req.Description != nil {
-//		expense.Description = *req.Description
-//	}
-//
-//	if req.Amount != nil {
-//		expense.Amount = *req.Amount
-//	}
-//
-//	if req.Currency != nil {
-//		expense.Currency = *req.Currency
-//	}
-//
-//	if req.ExpenseDate != nil {
-//		expense.ExpenseDate = *req.ExpenseDate
-//	}
-//
-//	if req.SplitMethod != nil {
-//		expense.SplitMethod = *req.SplitMethod
-//	}
-//
-//	if err := s.expenseRepo.Update(ctx, expense); err != nil {
-//		s.logger.Errorw("Failed to update expense", "error", err, "id", id)
-//		return errors.WithMessage(err, "")("failed to update expense: %w", err)
-//	}
-//
-//	// Update shares if participants and/or split method are provided
-//	if req.ParticipantIds != nil && len(*req.ParticipantIds) > 0 {
-//		splitMethod := expense.SplitMethod
-//		if req.SplitMethod != nil {
-//			splitMethod = *req.SplitMethod
-//		}
-//
-//		err = s.CreateShares(ctx, id, *req.ParticipantIds, splitMethod)
-//		if err != nil {
-//			s.logger.Errorw("Failed to update expense shares", "error", err, "expenseId", id)
-//			return errors.WithMessage(err, "")("failed to update expense shares: %w", err)
-//		}
-//	}
-//
-//	return nil
-//}
-//
-//// Delete deletes an expense
-//func (s *service) Delete(ctx context.Context, id int) error {
-//	// First check if the expense exists
-//	_, err := s.expenseRepo.GetById(ctx, id)
-//	if err != nil {
-//		s.logger.Errorw("Failed to get expense for deletion", "error", err, "id", id)
-//		return errors.WithMessage(err, "")("failed to get expense: %w", err)
-//	}
-//
-//	// Delete associated shares
-//	err = s.expenseShareRepo.DeleteByExpense(ctx, id)
-//	if err != nil {
-//		s.logger.Warnw("Failed to delete expense shares", "error", err, "expenseId", id)
-//		// Continue even if share deletion fails
-//	}
-//
-//	// Delete the expense
-//	if err := s.expenseRepo.Delete(ctx, id); err != nil {
-//		s.logger.Errorw("Failed to delete expense", "error", err, "id", id)
-//		return errors.WithMessage(err, "")("failed to delete expense: %w", err)
-//	}
-//
-//	return nil
-//}
-//
-//// ListByEvent retrieves a list of expenses for a specific event with pagination
-//func (s *service) ListByEvent(ctx context.Context, eventId int, page, size int) (model.ExpensesResponse, error) {
-//	// Set default pagination values if not provided
-//	if page < 1 {
-//		page = 1
-//	}
-//	if size < 1 {
-//		size = 10
-//	}
-//
-//	offset := (page - 1) * size
-//	expenses, total, err := s.expenseRepo.ListByEvent(ctx, eventId, size, offset)
-//	if err != nil {
-//		s.logger.Errorw("Failed to list event expenses", "error", err, "eventId", eventId, "page", page, "size", size)
-//		return model.ExpensesResponse{}, fmt.Errorf("failed to list event expenses: %w", err)
-//	}
-//
-//	// Convert to response objects
-//	expenseResponses := make([]model.ExpenseResponse, len(expenses))
-//	for i, expense := range expenses {
-//		// Get expense shares
-//		shares, err := s.expenseShareRepo.ListByExpense(ctx, expense.Id)
-//		if err != nil {
-//			s.logger.Warnw("Failed to get expense shares", "error", err, "expenseId", expense.Id)
-//			// Continue even if we can't get shares
-//			expenseResponses[i] = model.ExpenseResponse{
-//				Id:          expense.Id,
-//				EventId:     expense.EventId,
-//				Description: expense.Description,
-//				Amount:      expense.Amount,
-//				Currency:    expense.Currency,
-//				ExpenseDate: expense.ExpenseDate,
-//				CreatedBy:   expense.CreatedBy,
-//				SplitMethod: expense.SplitMethod,
-//				CreatedAt:   expense.CreatedAt,
-//			}
-//			continue
-//		}
-//
-//		// Extract participant Ids and create share responses
-//		participantIds := make([]int, len(shares))
-//		shareResponses := make([]model.ExpenseShareResponse, len(shares))
-//		for j, share := range shares {
-//			participantIds[j] = share.UserId
-//			shareResponses[j] = model.ExpenseShareResponse{
-//				Id:          share.Id,
-//				ExpenseId:   share.ExpenseId,
-//				UserId:      share.UserId,
-//				ShareAmount: share.ShareAmount,
-//				IsPaid:      share.IsPaid,
-//				PaidAt:      share.PaidAt,
-//			}
-//		}
-//
-//		expenseResponses[i] = model.ExpenseResponse{
-//			Id:             expense.Id,
-//			EventId:        expense.EventId,
-//			Description:    expense.Description,
-//			Amount:         expense.Amount,
-//			Currency:       expense.Currency,
-//			ExpenseDate:    expense.ExpenseDate,
-//			CreatedBy:      expense.CreatedBy,
-//			SplitMethod:    expense.SplitMethod,
-//			CreatedAt:      expense.CreatedAt,
-//			ParticipantIds: participantIds,
-//			Shares:         shareResponses,
-//		}
-//	}
-//
-//	return model.ExpensesResponse{
-//		Expenses: expenseResponses,
-//		Total:    total,
-//	}, nil
-//}
-//
-//// ListByUser retrieves a list of expenses created by a specific user with pagination
-//func (s *service) ListByUser(ctx context.Context, userId int, page, size int) (model.ExpensesResponse, error) {
-//	// Set default pagination values if not provided
-//	if page < 1 {
-//		page = 1
-//	}
-//	if size < 1 {
-//		size = 10
-//	}
-//
-//	offset := (page - 1) * size
-//	expenses, total, err := s.expenseRepo.ListByUser(ctx, userId, size, offset)
-//	if err != nil {
-//		s.logger.Errorw("Failed to list user expenses", "error", err, "userId", userId, "page", page, "size", size)
-//		return model.ExpensesResponse{}, fmt.Errorf("failed to list user expenses: %w", err)
-//	}
-//
-//	// Convert to response objects
-//	expenseResponses := make([]model.ExpenseResponse, len(expenses))
-//	for i, expense := range expenses {
-//		// Get expense shares
-//		shares, err := s.expenseShareRepo.ListByExpense(ctx, expense.Id)
-//		if err != nil {
-//			s.logger.Warnw("Failed to get expense shares", "error", err, "expenseId", expense.Id)
-//			// Continue even if we can't get shares
-//			expenseResponses[i] = model.ExpenseResponse{
-//				Id:          expense.Id,
-//				EventId:     expense.EventId,
-//				Description: expense.Description,
-//				Amount:      expense.Amount,
-//				Currency:    expense.Currency,
-//				ExpenseDate: expense.ExpenseDate,
-//				CreatedBy:   expense.CreatedBy,
-//				SplitMethod: expense.SplitMethod,
-//				CreatedAt:   expense.CreatedAt,
-//			}
-//			continue
-//		}
-//
-//		// Extract participant Ids and create share responses
-//		participantIds := make([]int, len(shares))
-//		shareResponses := make([]model.ExpenseShareResponse, len(shares))
-//		for j, share := range shares {
-//			participantIds[j] = share.UserId
-//			shareResponses[j] = model.ExpenseShareResponse{
-//				Id:          share.Id,
-//				ExpenseId:   share.ExpenseId,
-//				UserId:      share.UserId,
-//				ShareAmount: share.ShareAmount,
-//				IsPaid:      share.IsPaid,
-//				PaidAt:      share.PaidAt,
-//			}
-//		}
-//
-//		expenseResponses[i] = model.ExpenseResponse{
-//			Id:             expense.Id,
-//			EventId:        expense.EventId,
-//			Description:    expense.Description,
-//			Amount:         expense.Amount,
-//			Currency:       expense.Currency,
-//			ExpenseDate:    expense.ExpenseDate,
-//			CreatedBy:      expense.CreatedBy,
-//			SplitMethod:    expense.SplitMethod,
-//			CreatedAt:      expense.CreatedAt,
-//			ParticipantIds: participantIds,
-//			Shares:         shareResponses,
-//		}
-//	}
-//
-//	return model.ExpensesResponse{
-//		Expenses: expenseResponses,
-//		Total:    total,
-//	}, nil
-//}
-//
-//// GetEventTotalExpenses calculates the total amount of expenses for an event
-//func (s *service) GetEventTotalExpenses(ctx context.Context, eventId int) (float64, error) {
-//	total, err := s.expenseRepo.GetEventTotalExpenses(ctx, eventId)
-//	if err != nil {
-//		s.logger.Errorw("Failed to calculate event total expenses", "error", err, "eventId", eventId)
-//		return 0, fmt.Errorf("failed to calculate event total expenses: %w", err)
-//	}
-//
-//	return total, nil
-//}
+import (
+	"context"
+	"fmt"
+	"github.com/PabloPerdolie/event-manager/core-service/internal/domain"
+	"github.com/PabloPerdolie/event-manager/core-service/internal/model"
+	"github.com/PabloPerdolie/event-manager/core-service/internal/repository"
+	"github.com/pkg/errors"
+	"go.uber.org/zap"
+	"math"
+)
+
+// Service предоставляет операции для работы с расходами
+type Service interface {
+	CreateExpense(ctx context.Context, req domain.ExpenseCreateRequest) (int, error)
+	GetExpenseById(ctx context.Context, id int) (domain.ExpenseResponse, error)
+	UpdateExpense(ctx context.Context, id int, req domain.ExpenseUpdateRequest) error
+	DeleteExpense(ctx context.Context, id int) error
+	ListExpensesByEvent(ctx context.Context, eventId int, page, size int) (domain.ExpensesResponse, error)
+	GetEventTotalExpenses(ctx context.Context, eventId int) (float64, error)
+	CreateExpenseShares(ctx context.Context, expenseId int, userIds []int, splitMethod string) error
+	UpdateExpenseSharePaidStatus(ctx context.Context, shareId int, isPaid bool) error
+	GetEventBalanceReport(ctx context.Context, eventId int) (domain.BalanceReportResponse, error)
+}
+
+type service struct {
+	expenseRepo      repository.Expense
+	expenseShareRepo repository.ExpenseShare
+	logger           *zap.SugaredLogger
+}
+
+// NewService создает новый сервис для работы с расходами
+func NewService(expenseRepo repository.Expense, expenseShareRepo repository.ExpenseShare, logger *zap.SugaredLogger) Service {
+	return &service{
+		expenseRepo:      expenseRepo,
+		expenseShareRepo: expenseShareRepo,
+		logger:           logger,
+	}
+}
+
+// CreateExpense создает новый расход
+func (s *service) CreateExpense(ctx context.Context, req domain.ExpenseCreateRequest) (int, error) {
+	expense := model.Expense{
+		EventID:     req.EventID,
+		Description: req.Description,
+		Amount:      req.Amount,
+		Currency:    req.Currency,
+		CreatedBy:   req.CreatedBy,
+		SplitMethod: req.SplitMethod,
+	}
+
+	id, err := s.expenseRepo.CreateExpense(ctx, expense)
+	if err != nil {
+		s.logger.Errorw("Failed to create expense", "error", err, "eventId", req.EventID)
+		return 0, fmt.Errorf("failed to create expense: %w", err)
+	}
+
+	// Создаем доли расходов для участников
+	if len(req.UserIDs) > 0 {
+		err = s.CreateExpenseShares(ctx, id, req.UserIDs, req.SplitMethod)
+		if err != nil {
+			s.logger.Errorw("Failed to create expense shares", "error", err, "expenseId", id)
+			// Мы не возвращаем ошибку, так как расход уже создан успешно
+		}
+	}
+
+	return id, nil
+}
+
+// CreateExpenseShares создает доли расходов для участников в зависимости от метода разделения
+func (s *service) CreateExpenseShares(ctx context.Context, expenseId int, userIds []int, splitMethod string) error {
+	// Получаем расход для определения суммы для разделения
+	expense, err := s.expenseRepo.GetExpenseById(ctx, expenseId)
+	if err != nil {
+		return errors.WithMessage(err, "failed to get expense for creating shares")
+	}
+
+	// Удаляем существующие доли для этого расхода
+	err = s.expenseShareRepo.DeleteExpenseSharesByExpenseId(ctx, expenseId)
+	if err != nil {
+		return errors.WithMessage(err, "failed to delete existing expense shares")
+	}
+
+	// Создаем доли в зависимости от метода разделения
+	switch splitMethod {
+	case model.SplitMethodEqual:
+		// Делим поровну между всеми участниками
+		if len(userIds) == 0 {
+			return errors.New("cannot split expense with no participants")
+		}
+
+		shareAmount := expense.Amount / float64(len(userIds))
+		// Округляем до 2 знаков после запятой
+		shareAmount = math.Round(shareAmount*100) / 100
+
+		for _, userId := range userIds {
+			share := model.ExpenseShare{
+				ExpenseID: expenseId,
+				UserID:    userId,
+				Amount:    shareAmount,
+				IsPaid:    false,
+			}
+
+			_, err := s.expenseShareRepo.CreateExpenseShare(ctx, share)
+			if err != nil {
+				s.logger.Warnw("Failed to create expense share", "error", err, "expenseId", expenseId, "userId", userId)
+				// Продолжаем, даже если одна доля не создалась
+			}
+		}
+
+	case model.SplitMethodPercent:
+		// Для простоты реализуем как равное разделение
+		if len(userIds) == 0 {
+			return errors.New("cannot split expense with no participants")
+		}
+
+		shareAmount := expense.Amount / float64(len(userIds))
+		// Округляем до 2 знаков после запятой
+		shareAmount = math.Round(shareAmount*100) / 100
+
+		for _, userId := range userIds {
+			share := model.ExpenseShare{
+				ExpenseID: expenseId,
+				UserID:    userId,
+				Amount:    shareAmount,
+				IsPaid:    false,
+			}
+
+			_, err := s.expenseShareRepo.CreateExpenseShare(ctx, share)
+			if err != nil {
+				s.logger.Warnw("Failed to create expense share", "error", err, "expenseId", expenseId, "userId", userId)
+				// Продолжаем, даже если одна доля не создалась
+			}
+		}
+
+	case model.SplitMethodExact:
+		// Для точных сумм нам нужны дополнительные данные
+		// Пока возвращаем ошибку
+		return errors.New("exact split method requires additional data")
+
+	default:
+		return fmt.Errorf("unsupported split method: %s", splitMethod)
+	}
+
+	return nil
+}
+
+// GetExpenseById получает расход по ID
+func (s *service) GetExpenseById(ctx context.Context, id int) (domain.ExpenseResponse, error) {
+	expense, err := s.expenseRepo.GetExpenseById(ctx, id)
+	if err != nil {
+		s.logger.Errorw("Failed to get expense by ID", "error", err, "id", id)
+		return domain.ExpenseResponse{}, errors.WithMessage(err, "failed to get expense")
+	}
+
+	// Получаем доли расходов
+	shares, err := s.expenseShareRepo.ListExpenseSharesByExpenseId(ctx, id)
+	if err != nil {
+		s.logger.Warnw("Failed to get expense shares", "error", err, "expenseId", id)
+		// Продолжаем, даже если не можем получить доли
+		shares = []model.ExpenseShare{}
+	}
+
+	return domain.ExpenseResponse{
+		ExpenseID:   expense.ExpenseID,
+		EventID:     expense.EventID,
+		Description: expense.Description,
+		Amount:      expense.Amount,
+		Currency:    expense.Currency,
+		CreatedBy:   expense.CreatedBy,
+		SplitMethod: expense.SplitMethod,
+		CreatedAt:   expense.CreatedAt,
+		Shares:      shares,
+	}, nil
+}
+
+// UpdateExpense обновляет расход
+func (s *service) UpdateExpense(ctx context.Context, id int, req domain.ExpenseUpdateRequest) error {
+	expense, err := s.expenseRepo.GetExpenseById(ctx, id)
+	if err != nil {
+		s.logger.Errorw("Failed to get expense for update", "error", err, "id", id)
+		return errors.WithMessage(err, "failed to get expense")
+	}
+
+	// Обновляем поля, если они предоставлены
+	if req.Description != nil {
+		expense.Description = *req.Description
+	}
+
+	if req.Amount != nil {
+		expense.Amount = *req.Amount
+	}
+
+	if req.Currency != nil {
+		expense.Currency = *req.Currency
+	}
+
+	if req.SplitMethod != nil {
+		expense.SplitMethod = *req.SplitMethod
+	}
+
+	if err := s.expenseRepo.UpdateExpense(ctx, *expense); err != nil {
+		s.logger.Errorw("Failed to update expense", "error", err, "id", id)
+		return errors.WithMessage(err, "failed to update expense")
+	}
+
+	// Обновляем доли, если предоставлены участники и/или метод разделения
+	if req.UserIDs != nil && len(*req.UserIDs) > 0 {
+		splitMethod := expense.SplitMethod
+		if req.SplitMethod != nil {
+			splitMethod = *req.SplitMethod
+		}
+
+		err = s.CreateExpenseShares(ctx, id, *req.UserIDs, splitMethod)
+		if err != nil {
+			s.logger.Errorw("Failed to update expense shares", "error", err, "expenseId", id)
+			return errors.WithMessage(err, "failed to update expense shares")
+		}
+	}
+
+	return nil
+}
+
+// DeleteExpense удаляет расход
+func (s *service) DeleteExpense(ctx context.Context, id int) error {
+	// Сначала проверяем, существует ли расход
+	_, err := s.expenseRepo.GetExpenseById(ctx, id)
+	if err != nil {
+		s.logger.Errorw("Failed to get expense for deletion", "error", err, "id", id)
+		return errors.WithMessage(err, "failed to get expense")
+	}
+
+	// Удаляем все доли расхода
+	err = s.expenseShareRepo.DeleteExpenseSharesByExpenseId(ctx, id)
+	if err != nil {
+		s.logger.Errorw("Failed to delete expense shares", "error", err, "expenseId", id)
+		// Продолжаем, так как хотим попробовать удалить сам расход
+	}
+
+	// Удаляем расход
+	err = s.expenseRepo.DeleteExpense(ctx, id)
+	if err != nil {
+		s.logger.Errorw("Failed to delete expense", "error", err, "id", id)
+		return errors.WithMessage(err, "failed to delete expense")
+	}
+
+	return nil
+}
+
+// ListExpensesByEvent получает список расходов для события с пагинацией
+func (s *service) ListExpensesByEvent(ctx context.Context, eventId int, page, size int) (domain.ExpensesResponse, error) {
+	offset := (page - 1) * size
+	expenses, total, err := s.expenseRepo.ListExpensesByEventId(ctx, eventId, size, offset)
+	if err != nil {
+		s.logger.Errorw("Failed to list expenses by event", "error", err, "eventId", eventId)
+		return domain.ExpensesResponse{}, errors.WithMessage(err, "failed to list expenses")
+	}
+
+	// Преобразуем в ответ
+	expenseResponses := make([]domain.ExpenseResponse, len(expenses))
+	for i, expense := range expenses {
+		// Получаем доли для каждого расхода
+		shares, err := s.expenseShareRepo.ListExpenseSharesByExpenseId(ctx, expense.ExpenseID)
+		if err != nil {
+			s.logger.Warnw("Failed to get expense shares", "error", err, "expenseId", expense.ExpenseID)
+			shares = []model.ExpenseShare{}
+		}
+
+		expenseResponses[i] = domain.ExpenseResponse{
+			ExpenseID:   expense.ExpenseID,
+			EventID:     expense.EventID,
+			Description: expense.Description,
+			Amount:      expense.Amount,
+			Currency:    expense.Currency,
+			CreatedBy:   expense.CreatedBy,
+			SplitMethod: expense.SplitMethod,
+			CreatedAt:   expense.CreatedAt,
+			Shares:      shares,
+		}
+	}
+
+	return domain.ExpensesResponse{
+		Items:      expenseResponses,
+		TotalCount: total,
+	}, nil
+}
+
+// GetEventTotalExpenses получает общую сумму расходов для события
+func (s *service) GetEventTotalExpenses(ctx context.Context, eventId int) (float64, error) {
+	total, err := s.expenseRepo.GetEventTotalExpenses(ctx, eventId)
+	if err != nil {
+		s.logger.Errorw("Failed to get event total expenses", "error", err, "eventId", eventId)
+		return 0, errors.WithMessage(err, "failed to get event total expenses")
+	}
+
+	return total, nil
+}
+
+// UpdateExpenseSharePaidStatus обновляет статус оплаты доли расхода
+func (s *service) UpdateExpenseSharePaidStatus(ctx context.Context, shareId int, isPaid bool) error {
+	err := s.expenseShareRepo.UpdateExpenseSharePaidStatus(ctx, shareId, isPaid)
+	if err != nil {
+		s.logger.Errorw("Failed to update expense share paid status", "error", err, "shareId", shareId)
+		return errors.WithMessage(err, "failed to update expense share paid status")
+	}
+
+	return nil
+}
+
+// GetEventBalanceReport получает отчет о балансе участников события
+func (s *service) GetEventBalanceReport(ctx context.Context, eventId int) (domain.BalanceReportResponse, error) {
+	// Получаем общую сумму расходов для события
+	totalAmount, err := s.expenseRepo.GetEventTotalExpenses(ctx, eventId)
+	if err != nil {
+		s.logger.Errorw("Failed to get event total expenses for report", "error", err, "eventId", eventId)
+		return domain.BalanceReportResponse{}, errors.WithMessage(err, "failed to get event total expenses")
+	}
+
+	// Получаем балансы участников
+	balances, err := s.expenseShareRepo.GetEventBalanceReport(ctx, eventId)
+	if err != nil {
+		s.logger.Errorw("Failed to get event balance report", "error", err, "eventId", eventId)
+		return domain.BalanceReportResponse{}, errors.WithMessage(err, "failed to get event balance report")
+	}
+
+	// Преобразуем в доменную модель
+	userBalances := make([]domain.UserBalance, len(balances))
+	for i, balance := range balances {
+		userBalances[i] = domain.UserBalance{
+			UserID:   balance.UserID,
+			Username: balance.Username,
+			Balance:  balance.Balance,
+		}
+	}
+
+	return domain.BalanceReportResponse{
+		EventID:      eventId,
+		TotalAmount:  totalAmount,
+		UserBalances: userBalances,
+	}, nil
+}

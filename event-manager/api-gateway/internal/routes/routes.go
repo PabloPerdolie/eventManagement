@@ -88,6 +88,18 @@ func setupServiceProxies(api *gin.RouterGroup, c *Controllers, authMiddleware *m
 		eventsProxy.Any("/*any", c.ProxyCtrl.ProxyToEventService) // всё остальное
 	}
 
+	tasksProxy := api.Group("/tasks", authMiddleware.Authenticate())
+	{
+		tasksProxy.Any("", c.ProxyCtrl.ProxyToEventService)      // /api/v1/tasks
+		tasksProxy.Any("/*any", c.ProxyCtrl.ProxyToEventService) // всё остальное
+	}
+
+	expensesProxy := api.Group("/expenses", authMiddleware.Authenticate())
+	{
+		expensesProxy.Any("", c.ProxyCtrl.ProxyToEventService)      // /api/v1/tasks
+		expensesProxy.Any("/*any", c.ProxyCtrl.ProxyToEventService) // всё остальное
+	}
+
 	comments := api.Group("/comments", authMiddleware.Authenticate())
 	{
 		comments.POST("/create", c.CommentCtrl.Create)

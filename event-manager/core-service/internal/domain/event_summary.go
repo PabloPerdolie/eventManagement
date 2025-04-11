@@ -7,5 +7,6 @@ type EventData struct {
 	EventData         EventResponse
 	Tasks             TasksResponse
 	Comments          model.CommunicationServiceResponse
-	// expenses
+	Expenses          ExpensesResponse
+	BalanceReport     BalanceReportResponse
 }
