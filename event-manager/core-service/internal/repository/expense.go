@@ -18,7 +18,6 @@ func NewExpense(db *sqlx.DB) Expense {
 	}
 }
 
-// CreateExpense создает новый расход и возвращает его ID
 func (r Expense) CreateExpense(ctx context.Context, expense model.Expense) (int, error) {
 	query := `
 		INSERT INTO expense (event_id, created_by, description, amount, currency, split_method, created_at)
@@ -41,7 +40,16 @@ func (r Expense) CreateExpense(ctx context.Context, expense model.Expense) (int,
 	return id, nil
 }
 
-// GetExpenseById получает расход по ID
+func (r Expense) DeleteExpense(ctx context.Context, id int) error {
+	query := `DELETE FROM expense WHERE expense_id = $1`
+	_, err := r.db.ExecContext(ctx, query, id)
+	if err != nil {
+		return errors.WithMessage(err, "delete expense")
+	}
+
+	return nil
+}
+
 func (r Expense) GetExpenseById(ctx context.Context, id int) (*model.Expense, error) {
 	query := `
 		SELECT expense_id, event_id, created_by, description, amount, currency, split_method, created_at
@@ -69,39 +77,6 @@ func (r Expense) GetExpenseById(ctx context.Context, id int) (*model.Expense, er
 	return &expense, nil
 }
 
-// UpdateExpense обновляет существующий расход
-func (r Expense) UpdateExpense(ctx context.Context, expense model.Expense) error {
-	query := `
-		UPDATE expense
-		SET description = $1, amount = $2, currency = $3, split_method = $4
-		WHERE expense_id = $5
-	`
-	_, err := r.db.ExecContext(ctx, query,
-		expense.Description,
-		expense.Amount,
-		expense.Currency,
-		expense.SplitMethod,
-		expense.ExpenseID,
-	)
-	if err != nil {
-		return errors.WithMessage(err, "update expense")
-	}
-
-	return nil
-}
-
-// DeleteExpense удаляет расход по ID
-func (r Expense) DeleteExpense(ctx context.Context, id int) error {
-	query := `DELETE FROM expense WHERE expense_id = $1`
-	_, err := r.db.ExecContext(ctx, query, id)
-	if err != nil {
-		return errors.WithMessage(err, "delete expense")
-	}
-
-	return nil
-}
-
-// ListExpensesByEventId получает список расходов для события
 func (r Expense) ListExpensesByEventId(ctx context.Context, eventId int, limit, offset int) ([]model.Expense, int, error) {
 	countQuery := `SELECT COUNT(*) FROM expense WHERE event_id = $1`
 	var total int
@@ -149,7 +124,6 @@ func (r Expense) ListExpensesByEventId(ctx context.Context, eventId int, limit, 
 	return expenses, total, nil
 }
 
-// GetEventTotalExpenses получает сумму всех расходов по событию
 func (r Expense) GetEventTotalExpenses(ctx context.Context, eventId int) (float64, error) {
 	query := `SELECT COALESCE(SUM(amount), 0) FROM expense WHERE event_id = $1`
 	var total float64

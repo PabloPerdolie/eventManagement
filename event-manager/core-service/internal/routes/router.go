@@ -49,8 +49,13 @@ func SetupRoutes(router *gin.Engine, controllers *Controllers) {
 		expenses := api.Group("/expenses")
 		{
 			expenses.POST("", controllers.ExpenseCtrl.Create)
-			expenses.PUT("/:id", controllers.ExpenseCtrl.Update)
 			expenses.DELETE("/:id", controllers.ExpenseCtrl.Delete)
+
+			// Маршруты для долей расходов
+			expenseShares := api.Group("/shares")
+			{
+				expenseShares.PUT("/:id/paid-status", controllers.ExpenseCtrl.UpdateExpenseSharePaidStatus)
+			}
 		}
 	}
 }

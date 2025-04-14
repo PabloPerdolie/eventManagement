@@ -20,7 +20,6 @@ func NewExpenseShare(db *sqlx.DB) ExpenseShare {
 	}
 }
 
-// CreateExpenseShare создает новую запись о доле расхода
 func (r ExpenseShare) CreateExpenseShare(ctx context.Context, share model.ExpenseShare) (int, error) {
 	query := `
 		INSERT INTO expense_share (expense_id, user_id, amount, is_paid, paid_at)
@@ -42,7 +41,6 @@ func (r ExpenseShare) CreateExpenseShare(ctx context.Context, share model.Expens
 	return id, nil
 }
 
-// GetExpenseShareById получает долю расхода по ID
 func (r ExpenseShare) GetExpenseShareById(ctx context.Context, id int) (*model.ExpenseShare, error) {
 	query := `
 		SELECT share_id, expense_id, user_id, amount, is_paid, paid_at
@@ -68,7 +66,6 @@ func (r ExpenseShare) GetExpenseShareById(ctx context.Context, id int) (*model.E
 	return &share, nil
 }
 
-// ListExpenseSharesByExpenseId получает все доли для определенного расхода
 func (r ExpenseShare) ListExpenseSharesByExpenseId(ctx context.Context, expenseId int) ([]model.ExpenseShare, error) {
 	query := `
 		SELECT share_id, expense_id, user_id, amount, is_paid, paid_at
@@ -105,7 +102,6 @@ func (r ExpenseShare) ListExpenseSharesByExpenseId(ctx context.Context, expenseI
 	return shares, nil
 }
 
-// ListExpenseSharesByUserId получает все доли расходов конкретного пользователя
 func (r ExpenseShare) ListExpenseSharesByUserId(ctx context.Context, userId int) ([]model.ExpenseShare, error) {
 	query := `
 		SELECT share_id, expense_id, user_id, amount, is_paid, paid_at
@@ -202,7 +198,6 @@ func (r ExpenseShare) GetUserBalanceInEvent(ctx context.Context, userId int, eve
 	return balance, nil
 }
 
-// GetEventBalanceReport формирует отчет о балансе всех участников события
 func (r ExpenseShare) GetEventBalanceReport(ctx context.Context, eventId int) ([]domain.UserBalance, error) {
 	query := `
 		WITH event_users AS (
