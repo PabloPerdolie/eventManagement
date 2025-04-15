@@ -2,7 +2,6 @@ package expense
 
 import (
 	"context"
-	"fmt"
 	"github.com/PabloPerdolie/event-manager/core-service/internal/domain"
 	"github.com/PabloPerdolie/event-manager/core-service/internal/model"
 	"github.com/pkg/errors"
@@ -53,7 +52,7 @@ func (s Service) CreateExpense(ctx context.Context, req domain.ExpenseCreateRequ
 	id, err := s.expenseRepo.CreateExpense(ctx, expense)
 	if err != nil {
 		s.logger.Errorw("Failed to create expense", "error", err, "eventId", req.EventID)
-		return 0, fmt.Errorf("failed to create expense: %w", err)
+		return 0, errors.WithMessage(err, "create expense")
 	}
 
 	// Создаем доли расходов для участников
@@ -114,7 +113,7 @@ func (s Service) CreateExpenseShares(ctx context.Context, expenseId int, userIds
 		return errors.New("exact split method requires additional data")
 
 	default:
-		return fmt.Errorf("unsupported split method: %s", splitMethod)
+		return errors.Errorf("unsupported split method: %s", splitMethod)
 	}
 
 	return nil

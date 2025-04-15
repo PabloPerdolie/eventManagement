@@ -8,32 +8,15 @@ import (
 )
 
 type ParticipantService interface {
-	Create(ctx context.Context, eventID int, req domain.EventParticipantCreateRequest) (*domain.EventParticipantResponse, error)
-	GetById(ctx context.Context, id int) (*domain.EventParticipantResponse, error)
-	Delete(ctx context.Context, id int) error
 	ListByEvent(ctx context.Context, eventID int, page, size int) (*domain.EventParticipantsResponse, error)
-	ListByUser(ctx context.Context, userId int, page, size int) (*domain.EventParticipantsResponse, error)
-	ConfirmParticipation(ctx context.Context, id int) error
-	DeclineParticipation(ctx context.Context, id int) error
 }
 
 type EventService interface {
-	Create(ctx context.Context, userId int, req domain.EventCreateRequest) (int, error)
 	GetById(ctx context.Context, id int) (*domain.EventResponse, error)
-	Update(ctx context.Context, id int, req domain.EventUpdateRequest) error
-	Delete(ctx context.Context, id int) error
-	List(ctx context.Context, page, size int) (*domain.EventsResponse, error)
-	ListByOrganizer(ctx context.Context, organizerId int, page, size int) (*domain.EventsResponse, error)
-	ListByParticipant(ctx context.Context, participantId int, page, size int) (*domain.EventsResponse, error)
 }
 
 type TaskService interface {
-	Create(ctx context.Context, req domain.TaskCreateRequest) (*domain.TaskResponse, error)
-	Update(ctx context.Context, id int, req domain.TaskUpdateRequest) error
-	Delete(ctx context.Context, id int) error
 	ListByEvent(ctx context.Context, eventId int, page, size int) (*domain.TasksResponse, error)
-	ListByUser(ctx context.Context, userId int, page, size int) (*domain.TasksResponse, error)
-	UpdateStatus(ctx context.Context, id int, status domain.TaskStatus) error
 }
 
 type CommentsRepo interface {

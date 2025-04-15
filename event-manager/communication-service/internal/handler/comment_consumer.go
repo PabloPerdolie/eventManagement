@@ -33,8 +33,7 @@ func (h CommentConsumer) ProcessMessage(msg amqp.Delivery) {
 		return
 	}
 
-	ctx := context.Background()
-	id, err := h.commentService.CreateComment(ctx, message)
+	id, err := h.commentService.CreateComment(context.Background(), message)
 	if err != nil {
 		h.logger.Errorw("failed to create comment", "error", err)
 		msg.Reject(false)

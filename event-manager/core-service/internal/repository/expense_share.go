@@ -102,43 +102,6 @@ func (r ExpenseShare) ListExpenseSharesByExpenseId(ctx context.Context, expenseI
 	return shares, nil
 }
 
-func (r ExpenseShare) ListExpenseSharesByUserId(ctx context.Context, userId int) ([]model.ExpenseShare, error) {
-	query := `
-		SELECT share_id, expense_id, user_id, amount, is_paid, paid_at
-		FROM expense_share
-		WHERE user_id = $1
-	`
-	rows, err := r.db.QueryContext(ctx, query, userId)
-	if err != nil {
-		return nil, errors.WithMessage(err, "list expense shares by user id")
-	}
-	defer rows.Close()
-
-	shares := make([]model.ExpenseShare, 0)
-	for rows.Next() {
-		var share model.ExpenseShare
-		err := rows.Scan(
-			&share.ShareID,
-			&share.ExpenseID,
-			&share.UserID,
-			&share.Amount,
-			&share.IsPaid,
-			&share.PaidAt,
-		)
-		if err != nil {
-			return nil, errors.WithMessage(err, "scan expense share")
-		}
-		shares = append(shares, share)
-	}
-
-	if rows.Err() != nil {
-		return nil, errors.WithMessage(rows.Err(), "rows err")
-	}
-
-	return shares, nil
-}
-
-// UpdateExpenseSharePaidStatus обновляет статус оплаты доли расхода
 func (r ExpenseShare) UpdateExpenseSharePaidStatus(ctx context.Context, shareId int, isPaid bool) error {
 	var paidAt interface{} = nil
 	if isPaid {
@@ -158,7 +121,6 @@ func (r ExpenseShare) UpdateExpenseSharePaidStatus(ctx context.Context, shareId 
 	return nil
 }
 
-// DeleteExpenseSharesByExpenseId удаляет все доли для указанного расхода
 func (r ExpenseShare) DeleteExpenseSharesByExpenseId(ctx context.Context, expenseId int) error {
 	query := `DELETE FROM expense_share WHERE expense_id = $1`
 	_, err := r.db.ExecContext(ctx, query, expenseId)
@@ -174,20 +136,12 @@ func (r ExpenseShare) DeleteExpenseSharesByExpenseId(ctx context.Context, expens
 // Отрицательный - должен заплатить
 func (r ExpenseShare) GetUserBalanceInEvent(ctx context.Context, userId int, eventId int) (float64, error) {
 	query := `
-		WITH user_expenses AS (
-			SELECT e.expense_id, e.amount, e.created_by
-			FROM expense e
-			WHERE e.event_id = $1
-		),
-		user_shares AS (
-			SELECT es.expense_id, es.amount
-			FROM expense_share es
-			JOIN user_expenses ue ON es.expense_id = ue.expense_id
-			WHERE es.user_id = $2
-		)
-		SELECT 
-			COALESCE((SELECT SUM(amount) FROM user_expenses WHERE created_by = $2), 0) -
-			COALESCE((SELECT SUM(amount) FROM user_shares), 0) as balance
+		SELECT
+    		COALESCE(SUM(CASE WHEN e.created_by = $2 THEN e.amount ELSE 0 END), 0) -
+    		COALESCE(SUM(CASE WHEN es.user_id = $2 THEN es.amount ELSE 0 END), 0) AS balance
+		FROM expense e
+		LEFT JOIN expense_share es ON es.expense_id = e.expense_id
+		WHERE e.event_id = $1
 	`
 	var balance float64
 	err := r.db.QueryRowContext(ctx, query, eventId, userId).Scan(&balance)
@@ -200,32 +154,18 @@ func (r ExpenseShare) GetUserBalanceInEvent(ctx context.Context, userId int, eve
 
 func (r ExpenseShare) GetEventBalanceReport(ctx context.Context, eventId int) ([]domain.UserBalance, error) {
 	query := `
-		WITH event_users AS (
-			SELECT DISTINCT ep.user_id
-			FROM event_participant ep
-			WHERE ep.event_id = $1
-		),
-		user_expenses AS (
-			SELECT e.expense_id, e.amount, e.created_by
-			FROM expense e
-			WHERE e.event_id = $1
-		),
-		user_shares AS (
-			SELECT es.user_id, es.expense_id, es.amount
-			FROM expense_share es
-			JOIN user_expenses ue ON es.expense_id = ue.expense_id
-		),
-		user_balances AS (
-			SELECT 
-				eu.user_id,
-				COALESCE((SELECT SUM(amount) FROM user_expenses WHERE created_by = eu.user_id), 0) -
-				COALESCE((SELECT SUM(amount) FROM user_shares WHERE user_id = eu.user_id), 0) as balance
-			FROM event_users eu
-		)
-		SELECT ub.user_id, u.username, ub.balance
-		FROM user_balances ub
-		JOIN users u ON ub.user_id = u.user_id
-		ORDER BY ub.balance DESC
+		SELECT 
+    		ep.user_id,
+    		u.username,
+    		COALESCE(SUM(CASE WHEN e.created_by = ep.user_id THEN e.amount ELSE 0 END), 0) -
+    		COALESCE(SUM(COALESCE(es.amount, 0)), 0) AS balance
+		FROM event_participant ep
+		JOIN users u ON u.user_id = ep.user_id
+		LEFT JOIN expense e ON e.event_id = ep.event_id
+		LEFT JOIN expense_share es ON es.expense_id = e.expense_id AND es.user_id = ep.user_id
+		WHERE ep.event_id = $1
+		GROUP BY ep.user_id, u.username
+		ORDER BY balance DESC
 	`
 
 	rows, err := r.db.QueryContext(ctx, query, eventId)
