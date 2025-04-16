@@ -14,11 +14,11 @@ type Controllers struct {
 }
 
 func SetupRoutes(router *gin.Engine, controllers *Controllers) {
+	router.GET("/health", controllers.HealthCtrl.Check)
+
 	// API v1 группа
 	api := router.Group("/api/v1")
 	{
-		api.GET("/health", controllers.HealthCtrl.Check)
-
 		// Маршруты событий
 		events := api.Group("/events")
 		{

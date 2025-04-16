@@ -160,20 +160,12 @@ definitions:
       split_method:
         type: string
     type: object
-  domain.ExpenseUpdateRequest:
+  domain.ExpenseShareUpdateRequest:
     properties:
-      amount:
-        type: number
-      currency:
-        type: string
-      description:
-        type: string
-      split_method:
-        type: string
-      user_ids:
-        items:
-          type: integer
-        type: array
+      is_paid:
+        type: boolean
+    required:
+    - is_paid
     type: object
   domain.ExpensesResponse:
     properties:
@@ -656,22 +648,23 @@ paths:
       summary: Delete expense
       tags:
       - expenses
+  /expenses/shares/{id}/paid-status:
     put:
       consumes:
       - application/json
-      description: Update an existing expense
+      description: Update the paid status of an expense share
       parameters:
-      - description: Expense ID
+      - description: Share ID
         in: path
         name: id
         required: true
         type: integer
-      - description: Expense update data
+      - description: Paid status update data
         in: body
-        name: expense
+        name: request
         required: true
         schema:
-          $ref: '#/definitions/domain.ExpenseUpdateRequest'
+          $ref: '#/definitions/domain.ExpenseShareUpdateRequest'
       produces:
       - application/json
       responses:
@@ -687,19 +680,13 @@ paths:
             additionalProperties:
               type: string
             type: object
-        "404":
-          description: Not Found
-          schema:
-            additionalProperties:
-              type: string
-            type: object
         "500":
           description: Internal Server Error
           schema:
             additionalProperties:
               type: string
             type: object
-      summary: Update expense
+      summary: Update expense share paid status
       tags:
       - expenses
   /health:

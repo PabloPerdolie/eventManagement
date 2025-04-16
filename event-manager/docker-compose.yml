@@ -11,6 +11,11 @@ services:
     networks:
       - event-network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   postgres:
     image: postgres:16-alpine
@@ -26,6 +31,11 @@ services:
     networks:
       - event-network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   rabbitmq:
     image: rabbitmq:3-management
@@ -56,6 +66,11 @@ services:
       - "8025:8025" # Веб-интерфейс
     networks:
       - notification-network
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "1025"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   notification-service:
     build:
@@ -80,7 +95,7 @@ services:
       rabbitmq:
         condition: service_healthy
       mailhog:
-        condition: service_started
+        condition: service_healthy
     networks:
       - notification-network
 
@@ -91,9 +106,12 @@ services:
     ports:
       - "8081:8081"
     depends_on:
-      - postgres
-      - redis
-      - rabbitmq
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     networks:
       - event-network
     restart: unless-stopped
@@ -105,12 +123,18 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      - postgres
-      - rabbitmq
-      - api-gateway
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     networks:
       - event-network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   communication-service:
     build:
@@ -119,9 +143,29 @@ services:
     ports:
       - "8083:8083"
     depends_on:
-      - postgres
-      - rabbitmq
-      - core-service
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      core-service:
+        condition: service_healthy
+    networks:
+      - event-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8083/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  ems-ui-service:
+    build:
+      context: ./ems-ui-service
+      dockerfile: Dockerfile
+    container_name: ems-ui-service
+    ports:
+      - "3000:3000"
+    depends_on:
       - api-gateway
     networks:
       - event-network

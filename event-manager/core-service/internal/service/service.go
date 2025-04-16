@@ -52,12 +52,12 @@ func (s Service) GetEventSummary(ctx context.Context, eventId int) (*domain.Even
 		return nil, errors.WithMessage(err, "get event by id")
 	}
 
-	tasks, err := s.taskService.ListByEvent(ctx, eventId, 1, 10) // todo delete pagination
+	tasks, err := s.taskService.ListByEvent(ctx, eventId, 1, 100) // todo delete pagination
 	if err != nil {
 		return nil, errors.WithMessage(err, "get tasks by event id")
 	}
 
-	participants, err := s.participantService.ListByEvent(ctx, eventId, 1, 10) // todo delete pagination
+	participants, err := s.participantService.ListByEvent(ctx, eventId, 1, 100) // todo delete pagination
 	if err != nil {
 		return nil, errors.WithMessage(err, "get participants by event id")
 	}
