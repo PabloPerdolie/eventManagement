@@ -21,13 +21,17 @@ const Login: React.FC = () => {
   
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
-  const { loading } = useSelector((state: RootState) => state.auth);
+  const { loading, error } = useSelector((state: RootState) => state.auth);
 
   const onSubmit = async (data: LoginForm) => {
     try {
-      await dispatch(login(data));
-      navigate('/');
-      toast.success('Successfully logged in!');
+      const resultAction = await dispatch(login(data));
+      if (login.fulfilled.match(resultAction)) {
+        navigate('/');
+        toast.success('Successfully logged in!');
+      } else if (login.rejected.match(resultAction)) {
+        toast.error(resultAction.payload as string || 'Login failed. Please check your credentials.');
+      }
     } catch (error) {
       toast.error('Login failed. Please check your credentials.');
     }

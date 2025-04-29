@@ -52,7 +52,7 @@ func SetupRoutes(router *gin.Engine, controllers *Controllers) {
 			expenses.DELETE("/:id", controllers.ExpenseCtrl.Delete)
 
 			// Маршруты для долей расходов
-			expenseShares := api.Group("/shares")
+			expenseShares := expenses.Group("/shares")
 			{
 				expenseShares.PUT("/:id/paid-status", controllers.ExpenseCtrl.UpdateExpenseSharePaidStatus)
 			}

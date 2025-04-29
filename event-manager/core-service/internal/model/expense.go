@@ -26,9 +26,12 @@ type ExpenseShare struct {
 
 // UserBalance представляет баланс пользователя в событии
 type UserBalance struct {
-	UserID   int     `db:"user_id"`
-	Username string  `db:"username"`
-	Balance  float64 `db:"balance"`
+	UserID       int     `db:"user_id"`
+	Username     string  `db:"username"`
+	Balance      float64 `db:"balance"`
+	PaidAmount   float64 `db:"paid_amount"`
+	UnpaidAmount float64 `db:"unpaid_amount"`
+	TotalDue     float64 `db:"total_due"`
 }
 
 // Константы для методов разделения расходов

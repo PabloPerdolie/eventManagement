@@ -207,6 +207,10 @@ export interface ExpenseUpdateRequest {
   user_ids?: number[];
 }
 
+export interface ExpenseShareUpdateRequest {
+  is_paid: boolean;
+}
+
 export interface ExpenseResponse {
   expense_id: number;
   event_id: number;
@@ -228,6 +232,9 @@ export interface UserBalance {
   user_id: number;
   username: string;
   balance: number;
+  paid_amount: number;
+  unpaid_amount: number;
+  total_due: number;
 }
 
 export interface BalanceReportResponse {

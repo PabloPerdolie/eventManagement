@@ -199,7 +199,7 @@ const EventExpenses: React.FC = () => {
 
   const handleMarkShareAsPaid = async (shareId: number) => {
     try {
-      await expenseService.markShareAsPaid(shareId);
+      await expenseService.markShareAsPaid(shareId, true);
       toast.success('Доля отмечена как оплаченная');
       fetchEventData();
     } catch (error) {
@@ -323,57 +323,43 @@ const EventExpenses: React.FC = () => {
               </p>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-4">
-              {/* Пользователи с положительным балансом (должны получить) */}
-              <div className="border border-green-100 rounded-lg p-4 bg-green-50">
-                <h4 className="font-medium text-green-800 mb-2 text-sm uppercase">Должны получить</h4>
-                {balanceReport.user_balances
-                  .filter(ub => ub.balance > 0.01)
-                  .sort((a, b) => b.balance - a.balance)
-                  .map(userBalance => (
-                    <div key={`credit-${userBalance.user_id}`} className="flex justify-between items-center py-2 border-b border-green-100 last:border-0">
-                      <span className="font-medium">{userBalance.username}</span>
-                      <span className="text-green-600 font-bold">+{userBalance.balance.toFixed(2)} RUB</span>
-                    </div>
-                  ))}
-                {balanceReport.user_balances.filter(ub => ub.balance > 0.01).length === 0 && (
-                  <p className="text-sm text-gray-500 py-2">Нет пользователей с положительным балансом</p>
-                )}
-              </div>
-              
-              {/* Пользователи с отрицательным балансом (должны вернуть) */}
-              <div className="border border-red-100 rounded-lg p-4 bg-red-50">
-                <h4 className="font-medium text-red-800 mb-2 text-sm uppercase">Должны вернуть</h4>
-                {balanceReport.user_balances
-                  .filter(ub => ub.balance < -0.01)
-                  .sort((a, b) => a.balance - b.balance)
-                  .map(userBalance => (
-                    <div key={`debit-${userBalance.user_id}`} className="flex justify-between items-center py-2 border-b border-red-100 last:border-0">
-                      <span className="font-medium">{userBalance.username}</span>
-                      <span className="text-red-600 font-bold">{userBalance.balance.toFixed(2)} RUB</span>
-                    </div>
-                  ))}
-                {balanceReport.user_balances.filter(ub => ub.balance < -0.01).length === 0 && (
-                  <p className="text-sm text-gray-500 py-2">Нет пользователей с отрицательным балансом</p>
-                )}
-              </div>
-            </div>
-
-            {/* Пользователи с нулевым балансом */}
-            {balanceReport.user_balances.filter(ub => Math.abs(ub.balance) <= 0.01).length > 0 && (
-              <div className="mt-4 border border-gray-200 rounded-lg p-4 bg-gray-50">
-                <h4 className="font-medium text-gray-700 mb-2 text-sm uppercase">Сбалансированы</h4>
-                <div className="flex flex-wrap gap-2">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Участник</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">Баланс</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">Оплачено</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">Не оплачено</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">Всего к оплате</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
                   {balanceReport.user_balances
-                    .filter(ub => Math.abs(ub.balance) <= 0.01)
+                    .sort((a, b) => b.balance - a.balance)
                     .map(userBalance => (
-                      <span key={`neutral-${userBalance.user_id}`} className="bg-gray-200 text-gray-700 px-2 py-1 rounded-full text-sm">
-                        {userBalance.username}
-                      </span>
+                      <tr key={`balance-${userBalance.user_id}`} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">{userBalance.username}</td>
+                        <td className={`px-4 py-3 whitespace-nowrap text-sm font-medium text-right ${
+                          userBalance.balance > 0.01 ? 'text-green-600' : 
+                          userBalance.balance < -0.01 ? 'text-red-600' : 'text-gray-600'
+                        }`}>
+                          {userBalance.balance.toFixed(2)} RUB
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-green-600 text-right">
+                          {userBalance.paid_amount ? userBalance.paid_amount.toFixed(2) : '0.00'} RUB
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-red-600 text-right">
+                          {userBalance.unpaid_amount ? userBalance.unpaid_amount.toFixed(2) : '0.00'} RUB
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 text-right">
+                          {userBalance.total_due ? userBalance.total_due.toFixed(2) : '0.00'} RUB
+                        </td>
+                      </tr>
                     ))}
-                </div>
-              </div>
-            )}
+                </tbody>
+              </table>
+            </div>
 
             {/* Рекомендации по распределению */}
             {balanceReport.user_balances.some(ub => Math.abs(ub.balance) > 0.01) && (

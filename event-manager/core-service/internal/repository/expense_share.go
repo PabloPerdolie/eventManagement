@@ -137,8 +137,12 @@ func (r ExpenseShare) DeleteExpenseSharesByExpenseId(ctx context.Context, expens
 func (r ExpenseShare) GetUserBalanceInEvent(ctx context.Context, userId int, eventId int) (float64, error) {
 	query := `
 		SELECT
-    		COALESCE(SUM(CASE WHEN e.created_by = $2 THEN e.amount ELSE 0 END), 0) -
-    		COALESCE(SUM(CASE WHEN es.user_id = $2 THEN es.amount ELSE 0 END), 0) AS balance
+    		(
+                -- Сумма расходов, созданных пользователем
+                COALESCE(SUM(CASE WHEN e.created_by = $2 THEN e.amount ELSE 0 END), 0) 
+                -- Минус сумма неоплаченных долей пользователя
+                - COALESCE(SUM(CASE WHEN es.user_id = $2 AND es.is_paid = false THEN es.amount ELSE 0 END), 0)
+            ) AS balance
 		FROM expense e
 		LEFT JOIN expense_share es ON es.expense_id = e.expense_id
 		WHERE e.event_id = $1
@@ -157,8 +161,13 @@ func (r ExpenseShare) GetEventBalanceReport(ctx context.Context, eventId int) ([
 		SELECT 
     		ep.user_id,
     		u.username,
-    		COALESCE(SUM(CASE WHEN e.created_by = ep.user_id THEN e.amount ELSE 0 END), 0) -
-    		COALESCE(SUM(COALESCE(es.amount, 0)), 0) AS balance
+    		(
+                -- Сумма расходов, которые создал пользователь
+                COALESCE(SUM(CASE WHEN e.created_by = ep.user_id THEN e.amount ELSE 0 END), 0) 
+                -- Минус сумма долей, которые пользователь должен оплатить
+                - COALESCE(SUM(CASE WHEN es.user_id = ep.user_id AND es.is_paid = false THEN es.amount ELSE 0 END), 0)
+                -- Учитываем только неоплаченные доли, оплаченные уже не влияют на баланс
+            ) AS balance
 		FROM event_participant ep
 		JOIN users u ON u.user_id = ep.user_id
 		LEFT JOIN expense e ON e.event_id = ep.event_id

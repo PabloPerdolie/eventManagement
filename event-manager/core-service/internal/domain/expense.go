@@ -7,9 +7,12 @@ import (
 
 // UserBalance представляет баланс пользователя в событии
 type UserBalance struct {
-	UserID   int     `json:"user_id"`
-	Username string  `json:"username"`
-	Balance  float64 `json:"balance"`
+	UserID       int     `json:"user_id"`
+	Username     string  `json:"username"`
+	Balance      float64 `json:"balance"`
+	PaidAmount   float64 `json:"paid_amount,omitempty"`   // Сумма оплаченных долей
+	UnpaidAmount float64 `json:"unpaid_amount,omitempty"` // Сумма неоплаченных долей
+	TotalDue     float64 `json:"total_due,omitempty"`     // Общая сумма к оплате
 }
 
 // ExpenseCreateRequest запрос на создание расхода

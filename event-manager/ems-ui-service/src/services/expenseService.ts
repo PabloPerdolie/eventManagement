@@ -4,7 +4,8 @@ import {
   ExpenseResponse, 
   ExpensesResponse, 
   ExpenseUpdateRequest, 
-  BalanceReportResponse
+  BalanceReportResponse,
+  ExpenseShareUpdateRequest
 } from '../types/api';
 
 export const expenseService = {
@@ -64,12 +65,15 @@ export const expenseService = {
   },
 
   // Отметить долю как оплаченную
-  markShareAsPaid: async (shareId: number): Promise<{ success: boolean }> => {
+  markShareAsPaid: async (shareId: number, isPaid: boolean = true): Promise<{ success: boolean }> => {
     try {
-      const response = await api.put(`/expenses/shares/${shareId}/paid`);
+      const payload: ExpenseShareUpdateRequest = {
+        is_paid: isPaid
+      };
+      const response = await api.put(`/expenses/shares/${shareId}/paid-status`, payload);
       return response.data;
     } catch (error) {
-      console.error('Ошибка при отметке доли как оплаченной:', error);
+      console.error('Ошибка при изменении статуса оплаты доли:', error);
       throw error;
     }
   }

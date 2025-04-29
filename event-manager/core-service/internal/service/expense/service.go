@@ -206,13 +206,27 @@ func (s Service) GetEventBalanceReport(ctx context.Context, eventId int) (domain
 		return domain.BalanceReportResponse{}, errors.WithMessage(err, "failed to get event balance report")
 	}
 
-	// Преобразуем в доменную модель
+	// Преобразуем в доменную модель и добавляем дополнительную информацию
 	userBalances := make([]domain.UserBalance, len(balances))
+
 	for i, balance := range balances {
+		// Базовая информация о балансе
 		userBalances[i] = domain.UserBalance{
 			UserID:   balance.UserID,
 			Username: balance.Username,
 			Balance:  balance.Balance,
+		}
+
+		// Получаем список всех долей пользователя в этом событии
+		shares, err := s.getDetailedUserShares(ctx, eventId, balance.UserID)
+		if err != nil {
+			// Логируем ошибку, но продолжаем выполнение
+			s.logger.Warnw("Failed to get detailed shares for user", "error", err, "eventId", eventId, "userId", balance.UserID)
+		} else {
+			// Добавляем статистику по долям
+			userBalances[i].PaidAmount = shares.PaidAmount
+			userBalances[i].UnpaidAmount = shares.UnpaidAmount
+			userBalances[i].TotalDue = shares.TotalDue
 		}
 	}
 
@@ -221,4 +235,48 @@ func (s Service) GetEventBalanceReport(ctx context.Context, eventId int) (domain
 		TotalAmount:  totalAmount,
 		UserBalances: userBalances,
 	}, nil
+}
+
+// Дополнительная структура для хранения детальной информации о долях пользователя
+type userShareDetails struct {
+	PaidAmount   float64
+	UnpaidAmount float64
+	TotalDue     float64
+}
+
+// Вспомогательный метод для получения детальной информации о долях пользователя
+func (s Service) getDetailedUserShares(ctx context.Context, eventId, userId int) (userShareDetails, error) {
+	// Получаем все расходы события
+	expenses, _, err := s.expenseRepo.ListExpensesByEventId(ctx, eventId, 1000, 0)
+	if err != nil {
+		return userShareDetails{}, errors.WithMessage(err, "list expenses by event")
+	}
+
+	var result userShareDetails
+
+	// Обрабатываем каждый расход
+	for _, expense := range expenses {
+		// Получаем доли для этого расхода
+		shares, err := s.expenseShareRepo.ListExpenseSharesByExpenseId(ctx, expense.ExpenseID)
+		if err != nil {
+			s.logger.Warnw("Failed to get expense shares", "error", err, "expenseId", expense.ExpenseID)
+			continue
+		}
+
+		// Находим долю текущего пользователя
+		for _, share := range shares {
+			if share.UserID == userId {
+				// Считаем оплаченные и неоплаченные суммы
+				if share.IsPaid {
+					result.PaidAmount += share.Amount
+				} else {
+					result.UnpaidAmount += share.Amount
+				}
+				result.TotalDue += share.Amount
+				break
+			}
+		}
+	}
+
+	return result, nil
 }

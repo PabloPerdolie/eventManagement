@@ -49,14 +49,14 @@ func (h *TaskController) Create(c *gin.Context) {
 		return
 	}
 
-	id, err := h.service.Create(c.Request.Context(), req)
+	task, err := h.service.Create(c.Request.Context(), req)
 	if err != nil {
 		h.logger.Errorw("Failed to create task", "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"id": id})
+	c.JSON(http.StatusCreated, task)
 }
 
 // Update godoc
