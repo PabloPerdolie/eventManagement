@@ -6,7 +6,6 @@ sequenceDiagram
     participant CS as Core Service (Go)
     participant DB as База данных (PostgreSQL)
     participant NS as Notification Service (Go)
-    participant CMS as Communication Service (Go)
     participant ES as Внешняя служба
 
     U ->> C: Вводит данные мероприятия
