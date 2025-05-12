@@ -78,7 +78,7 @@ const EventDetails: React.FC = () => {
   // Обработчик удаления участника
   const handleRemoveParticipant = async (participantId: number) => {
     try {
-      await eventService.removeParticipant(participantId);
+      await eventService.removeParticipant(eventId, participantId);
       toast.success('Participant removed');
       // Обновляем данные события
       const data = await eventService.getEvent(eventId);

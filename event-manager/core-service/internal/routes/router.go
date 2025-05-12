@@ -32,7 +32,7 @@ func SetupRoutes(router *gin.Engine, controllers *Controllers) {
 			participants := events.Group("/:event_id/participants")
 			{
 				participants.POST("", controllers.EventParticipantCtrl.Create)
-				participants.DELETE("/:user_id", controllers.EventParticipantCtrl.Delete)
+				participants.DELETE("/:event_part_id", controllers.EventParticipantCtrl.Delete)
 			}
 		}
 

@@ -93,9 +93,9 @@ export const eventService = {
   },
 
   // Remove a participant from an event
-  removeParticipant: async (participantId: number) => {
+  removeParticipant: async (eventId, participantId: number) => {
     try {
-      const response = await api.delete(`/events/participants/${participantId}`);
+      const response = await api.delete(`/events/${eventId}/participants/${participantId}`);
       return response.data;
     } catch (error) {
       console.error('Error removing participant:', error);
