@@ -1,17 +1,21 @@
 package model
 
-import "time"
+import (
+	"database/sql"
+	"time"
+)
 
 // Структуры для работы с БД
 type Expense struct {
-	ExpenseID   int       `db:"expense_id"`
-	EventID     int       `db:"event_id"`
-	CreatedBy   int       `db:"created_by"`
-	Description string    `db:"description"`
-	Amount      float64   `db:"amount"`
-	Currency    string    `db:"currency"`
-	SplitMethod string    `db:"split_method"`
-	CreatedAt   time.Time `db:"created_at"`
+	ExpenseID   int           `db:"expense_id"`
+	EventID     int           `db:"event_id"`
+	TaskID      sql.NullInt64 `db:"task_id"`
+	CreatedBy   int           `db:"created_by"`
+	Description string        `db:"description"`
+	Amount      float64       `db:"amount"`
+	Currency    string        `db:"currency"`
+	SplitMethod string        `db:"split_method"`
+	CreatedAt   time.Time     `db:"created_at"`
 }
 
 // ExpenseShare представляет долю расхода для конкретного пользователя
@@ -22,6 +26,12 @@ type ExpenseShare struct {
 	Amount    float64    `db:"amount"`
 	IsPaid    bool       `db:"is_paid"`
 	PaidAt    *time.Time `db:"paid_at"`
+}
+
+type ExpenseShareUnpaid struct {
+	Email             string
+	EventID           int `db:"-"`
+	TotalUnpaidAmount float64
 }
 
 // UserBalance представляет баланс пользователя в событии

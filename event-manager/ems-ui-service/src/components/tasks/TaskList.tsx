@@ -11,6 +11,7 @@ interface TaskListProps {
   onDelete?: (taskId: number) => Promise<void>;
   expandedTaskIds: Set<number>;
   setExpandedTaskIds: React.Dispatch<React.SetStateAction<Set<number>>>;
+  onAddExpense?: (taskId: number) => void;
 }
 
 const TaskList: React.FC<TaskListProps> = ({
@@ -20,7 +21,8 @@ const TaskList: React.FC<TaskListProps> = ({
   onUpdateStatus,
   onDelete,
   expandedTaskIds,
-  setExpandedTaskIds
+  setExpandedTaskIds,
+  onAddExpense
 }) => {
   // Состояние для обновления анимации
   const [animationKey, setAnimationKey] = useState(0);
@@ -69,6 +71,7 @@ const TaskList: React.FC<TaskListProps> = ({
             onToggleExpand={handleToggleExpand}
             onUpdateStatus={onUpdateStatus}
             onDelete={onDelete}
+            onAddExpense={onAddExpense}
           />
         ))
       )}

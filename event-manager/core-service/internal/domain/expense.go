@@ -18,6 +18,7 @@ type UserBalance struct {
 // ExpenseCreateRequest запрос на создание расхода
 type ExpenseCreateRequest struct {
 	EventID     int     `json:"event_id" binding:"required"`
+	TaskID      *int    `json:"task_id,omitempty"`
 	Description string  `json:"description" binding:"required"`
 	Amount      float64 `json:"amount" binding:"required,gt=0"`
 	Currency    string  `json:"currency" binding:"required"`
@@ -39,6 +40,7 @@ type ExpenseUpdateRequest struct {
 type ExpenseResponse struct {
 	ExpenseID   int                  `json:"expense_id"`
 	EventID     int                  `json:"event_id"`
+	TaskID      *int                 `json:"task_id,omitempty"`
 	CreatedBy   int                  `json:"created_by"`
 	Description string               `json:"description"`
 	Amount      float64              `json:"amount"`

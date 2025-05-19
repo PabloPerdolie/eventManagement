@@ -4,16 +4,18 @@ import { useSelector } from 'react-redux';
 import { RootState } from '../store/store';
 import { taskService } from '../services/taskService';
 import { eventService } from '../services/eventService';
-import { TaskResponse, TaskStatus, EventResponse, TaskCreateRequest, TaskUpdateRequest } from '../types/api';
+import { expenseService } from '../services/expenseService';
+import { TaskResponse, TaskStatus, EventResponse, TaskCreateRequest, TaskUpdateRequest, ExpenseCreateRequest, ExpenseResponse } from '../types/api';
 import { Plus } from 'lucide-react';
 import { toast } from 'react-toastify';
 
 // Импортируем компоненты
 import TaskList from '../components/tasks/TaskList';
 import AddTaskForm from '../components/tasks/AddTaskForm';
+import AddExpenseForm from '../components/expenses/AddExpenseForm';
 import TaskStyles from '../components/tasks/TaskStyles';
 import { buildHierarchicalTasks, canChangeTaskStatus } from '../components/tasks/taskUtils';
-import { HierarchicalTask } from '../components/tasks/types';
+import { HierarchicalTask, TaskExpense } from '../components/tasks/types';
 
 const EventTasks: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -24,14 +26,16 @@ const EventTasks: React.FC = () => {
   const [hierarchicalTasks, setHierarchicalTasks] = useState<HierarchicalTask[]>([]);
   const [usernames, setUsernames] = useState<Map<number, string>>(new Map());
   const [showAddTaskDrawer, setShowAddTaskDrawer] = useState(false);
+  const [showAddExpenseDrawer, setShowAddExpenseDrawer] = useState(false);
+  const [selectedTaskId, setSelectedTaskId] = useState<number | undefined>(undefined);
   const { user } = useSelector((state: RootState) => state.auth);
   const [participants, setParticipants] = useState<Array<{id: number, username: string}>>([]);
   const [expandedTaskIds, setExpandedTaskIds] = useState<Set<number>>(new Set());
   const [taskForm, setTaskForm] = useState<{
     title: string;
     description: string;
-    assigned_to: number;
-    parent_id: number | undefined;
+    assigned_to?: number;
+    parent_id?: number;
     priority: string;
     story_points: number;
     task_id?: number;
@@ -44,6 +48,7 @@ const EventTasks: React.FC = () => {
     story_points: 1
   });
   const [showAddTaskForm, setShowAddTaskForm] = useState(false);
+  const [expenses, setExpenses] = useState<ExpenseResponse[]>([]);
 
   useEffect(() => {
     if (eventId) {
@@ -70,6 +75,13 @@ const EventTasks: React.FC = () => {
       // Fetch event details first
       const eventData = await eventService.getEvent(eventId);
       setEvent(eventData.eventData);
+      
+      // Загружаем расходы для события
+      let eventExpenses: ExpenseResponse[] = [];
+      if (eventData.expenses && eventData.expenses.items) {
+        eventExpenses = eventData.expenses.items;
+        setExpenses(eventExpenses);
+      }
       
       // Extract tasks from event data
       const taskData = eventData.tasks;
@@ -118,9 +130,15 @@ const EventTasks: React.FC = () => {
         );
         setTasks(sortedTasks);
         
+        // Добавляем расходы к задачам и расчитываем общие суммы
+        const tasksWithExpenses = addExpensesToTasks(sortedTasks, eventExpenses);
+        
         // Build hierarchical task structure
-        const hierarchicalTasks = buildHierarchicalTasks(sortedTasks);
-        setHierarchicalTasks(hierarchicalTasks);
+        const hierarchicalTasks = buildHierarchicalTasks(tasksWithExpenses);
+        
+        // Расчитываем общие суммы расходов для иерархии задач
+        const tasksWithTotalExpenses = calculateTotalExpenses(hierarchicalTasks);
+        setHierarchicalTasks(tasksWithTotalExpenses);
       }
 
       // Build username map from event participants
@@ -140,6 +158,75 @@ const EventTasks: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Функция для добавления расходов к соответствующим задачам
+  const addExpensesToTasks = (tasks: TaskResponse[], expenses: ExpenseResponse[]): TaskResponse[] => {
+    // Дебаг вывод
+    console.log(`Найдено задач: ${tasks.length}, расходов: ${expenses.length}`);
+    console.log(`Расходы с привязкой к задачам:`, expenses.filter(e => e.task_id).length);
+
+    // Создаем карту для быстрого доступа к задачам
+    const taskMap = new Map<number, TaskResponse>();
+    tasks.forEach(task => {
+      taskMap.set(task.id, { ...task } as any);
+    });
+    
+    // Распределяем расходы по задачам
+    expenses.forEach(expense => {
+      if (expense.task_id && taskMap.has(expense.task_id)) {
+        const task = taskMap.get(expense.task_id)!;
+        if (!('expenses' in task)) {
+          (task as any).expenses = [];
+        }
+        (task as any).expenses.push({
+          expense_id: expense.expense_id,
+          description: expense.description,
+          amount: expense.amount,
+          currency: expense.currency
+        });
+        console.log(`Задача #${task.id}: добавлен расход ${expense.expense_id} - ${expense.amount}`);
+      }
+    });
+    
+    // Возвращаем обновленные задачи
+    return Array.from(taskMap.values());
+  };
+
+  // Функция для расчета общей суммы расходов для иерархии задач
+  const calculateTotalExpenses = (tasks: HierarchicalTask[]): HierarchicalTask[] => {
+    // Создаем функцию для рекурсивного расчета суммы расходов для одной задачи
+    const calculateTaskExpenses = (task: HierarchicalTask): HierarchicalTask => {
+      const taskCopy = { ...task };
+      
+      // Считаем сумму собственных расходов задачи
+      const ownExpensesTotal = (task.expenses || []).reduce((sum, exp) => 
+        sum + exp.amount, 0);
+      
+      // Если есть дочерние задачи, обрабатываем их
+      let childrenTotal = 0;
+      if (task.children && task.children.length > 0) {
+        // Рекурсивно вычисляем для всех дочерних задач
+        taskCopy.children = task.children.map(calculateTaskExpenses);
+        
+        // Суммируем общие суммы дочерних задач
+        childrenTotal = taskCopy.children.reduce((sum, child) => 
+          sum + (child.totalExpenses || 0), 0);
+      }
+      
+      // Устанавливаем общую сумму расходов только если она больше 0
+      const totalAmount = ownExpensesTotal + childrenTotal;
+      if (totalAmount > 0.01) {
+        taskCopy.totalExpenses = totalAmount;
+        
+        console.log(`Задача #${task.id} (${task.title}): собственные расходы ${ownExpensesTotal}, дочерние ${childrenTotal}, всего ${totalAmount}`);
+      }
+      
+      return taskCopy;
+    };
+    
+    // Применяем эту функцию ко всем корневым задачам
+    return tasks.map(calculateTaskExpenses);
   };
 
   const handleTaskStatusChange = async (taskId: number, newStatus: TaskStatus) => {
@@ -289,6 +376,27 @@ const EventTasks: React.FC = () => {
     }
   };
 
+  // Обработчик добавления расхода к задаче
+  const handleAddExpense = (taskId: number) => {
+    setSelectedTaskId(taskId);
+    setShowAddExpenseDrawer(true);
+  };
+
+  // Обработчик создания расхода
+  const handleCreateExpense = async (expenseData: ExpenseCreateRequest) => {
+    try {
+      await expenseService.createExpense(expenseData);
+      setShowAddExpenseDrawer(false);
+      toast.success('Расход успешно создан');
+      
+      // Обновляем данные после создания расхода для отображения изменений
+      await fetchEventAndTasks();
+    } catch (error) {
+      console.error('Ошибка при создании расхода:', error);
+      toast.error('Не удалось создать расход');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -352,6 +460,7 @@ const EventTasks: React.FC = () => {
                 onDelete={handleTaskDelete}
                 expandedTaskIds={expandedTaskIds}
                 setExpandedTaskIds={setExpandedTaskIds}
+                onAddExpense={handleAddExpense}
               />
             </div>
           </div>
@@ -366,6 +475,18 @@ const EventTasks: React.FC = () => {
           participants={participants}
           onCancel={() => setShowAddTaskDrawer(false)}
           onSubmit={handleTaskFormSubmit}
+        />
+      )}
+
+      {/* Форма добавления расхода */}
+      {showAddExpenseDrawer && (
+        <AddExpenseForm 
+          eventId={eventId}
+          userId={user?.id || 0}
+          participants={participants}
+          onCancel={() => setShowAddExpenseDrawer(false)}
+          onSubmit={handleCreateExpense}
+          taskId={selectedTaskId}
         />
       )}
     </div>

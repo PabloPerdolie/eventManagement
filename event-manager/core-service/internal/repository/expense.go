@@ -20,13 +20,14 @@ func NewExpense(db *sqlx.DB) Expense {
 
 func (r Expense) CreateExpense(ctx context.Context, expense model.Expense) (int, error) {
 	query := `
-		INSERT INTO expense (event_id, created_by, description, amount, currency, split_method, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)
+		INSERT INTO expense (event_id, task_id, created_by, description, amount, currency, split_method, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP)
 		RETURNING expense_id
 	`
 	var id int
 	err := r.db.QueryRowContext(ctx, query,
 		expense.EventID,
+		expense.TaskID,
 		expense.CreatedBy,
 		expense.Description,
 		expense.Amount,
@@ -52,7 +53,7 @@ func (r Expense) DeleteExpense(ctx context.Context, id int) error {
 
 func (r Expense) GetExpenseById(ctx context.Context, id int) (*model.Expense, error) {
 	query := `
-		SELECT expense_id, event_id, created_by, description, amount, currency, split_method, created_at
+		SELECT expense_id, event_id, task_id, created_by, description, amount, currency, split_method, created_at
 		FROM expense
 		WHERE expense_id = $1
 	`
@@ -60,6 +61,7 @@ func (r Expense) GetExpenseById(ctx context.Context, id int) (*model.Expense, er
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
 		&expense.ExpenseID,
 		&expense.EventID,
+		&expense.TaskID,
 		&expense.CreatedBy,
 		&expense.Description,
 		&expense.Amount,
@@ -86,7 +88,7 @@ func (r Expense) ListExpensesByEventId(ctx context.Context, eventId int, limit, 
 	}
 
 	query := `
-		SELECT expense_id, event_id, created_by, description, amount, currency, split_method, created_at
+		SELECT expense_id, event_id, task_id, created_by, description, amount, currency, split_method, created_at
 		FROM expense
 		WHERE event_id = $1
 		ORDER BY created_at DESC
@@ -104,6 +106,7 @@ func (r Expense) ListExpensesByEventId(ctx context.Context, eventId int, limit, 
 		err := rows.Scan(
 			&expense.ExpenseID,
 			&expense.EventID,
+			&expense.TaskID,
 			&expense.CreatedBy,
 			&expense.Description,
 			&expense.Amount,

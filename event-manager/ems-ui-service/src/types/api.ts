@@ -197,6 +197,7 @@ export interface ExpenseCreateRequest {
   currency: string;
   split_method: string;
   user_ids: number[];
+  task_id?: number;
 }
 
 export interface ExpenseUpdateRequest {
@@ -205,6 +206,7 @@ export interface ExpenseUpdateRequest {
   currency?: string;
   split_method?: string;
   user_ids?: number[];
+  task_id?: number;
 }
 
 export interface ExpenseShareUpdateRequest {
@@ -221,6 +223,7 @@ export interface ExpenseResponse {
   currency: string;
   split_method: string;
   shares: ExpenseShare[];
+  task_id?: number;
 }
 
 export interface ExpensesResponse {
@@ -228,6 +231,18 @@ export interface ExpensesResponse {
   total_count: number;
 }
 
+export interface ExpenseFormData {
+  description: string;
+  amount: number;
+  currency: string;
+  split_method: string;
+  user_ids: number[];
+  isEditing: boolean;
+  expense_id?: number;
+  task_id?: number;
+}
+
+// Типы для работы с балансом событий
 export interface UserBalance {
   user_id: number;
   username: string;

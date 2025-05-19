@@ -115,6 +115,11 @@ services:
     networks:
       - event-network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8081/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   core-service:
     build:
@@ -126,6 +131,8 @@ services:
       postgres:
         condition: service_healthy
       rabbitmq:
+        condition: service_healthy
+      api-gateway:
         condition: service_healthy
     networks:
       - event-network

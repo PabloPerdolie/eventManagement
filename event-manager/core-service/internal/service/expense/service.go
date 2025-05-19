@@ -2,6 +2,7 @@ package expense
 
 import (
 	"context"
+	"database/sql"
 	"github.com/PabloPerdolie/event-manager/core-service/internal/domain"
 	"github.com/PabloPerdolie/event-manager/core-service/internal/model"
 	"github.com/pkg/errors"
@@ -47,6 +48,14 @@ func (s Service) CreateExpense(ctx context.Context, req domain.ExpenseCreateRequ
 		Currency:    req.Currency,
 		CreatedBy:   req.CreatedBy,
 		SplitMethod: req.SplitMethod,
+	}
+
+	// Установить TaskID если он есть
+	if req.TaskID != nil {
+		expense.TaskID = sql.NullInt64{
+			Int64: int64(*req.TaskID),
+			Valid: true,
+		}
 	}
 
 	id, err := s.expenseRepo.CreateExpense(ctx, expense)
@@ -137,9 +146,16 @@ func (s Service) ListExpensesByEvent(ctx context.Context, eventId int, page, siz
 			shares = []model.ExpenseShare{}
 		}
 
+		var taskID *int
+		if expense.TaskID.Valid {
+			taskIDInt := int(expense.TaskID.Int64)
+			taskID = &taskIDInt
+		}
+
 		expenseResponses[i] = domain.ExpenseResponse{
 			ExpenseID:   expense.ExpenseID,
 			EventID:     expense.EventID,
+			TaskID:      taskID,
 			Description: expense.Description,
 			Amount:      expense.Amount,
 			Currency:    expense.Currency,

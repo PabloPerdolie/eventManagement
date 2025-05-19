@@ -4,26 +4,32 @@ import { useSelector } from 'react-redux';
 import { RootState } from '../store/store';
 import { expenseService } from '../services/expenseService';
 import { eventService } from '../services/eventService';
+import { taskService } from '../services/taskService';
 import { 
   ExpenseResponse, 
-  ExpensesResponse, 
+  ExpenseFormData, 
+  ExpenseCreateRequest, 
   EventResponse, 
-  ExpenseCreateRequest,
-  UserBalance,
   BalanceReportResponse,
-  EventParticipantsResponse
+  EventParticipantsResponse,
+  TaskResponse,
+  UserBalance,
+  ExpensesResponse
 } from '../types/api';
-import { Plus, Trash2, Edit, DollarSign, Check, CheckCircle, XCircle } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { 
+  Plus, 
+  Trash2, 
+  Edit, 
+  DollarSign, 
+  Check, 
+  CheckCircle, 
+  XCircle 
+} from 'lucide-react';
 
-interface ExpenseFormData {
-  description: string;
-  amount: number;
-  currency: string;
-  split_method: string;
-  user_ids: number[];
-  isEditing: boolean;
-  expense_id?: number;
+interface ExpenseDetailProps {
+  expense: ExpenseResponse;
+  onClose: () => void;
 }
 
 const EventExpenses: React.FC = () => {
@@ -36,6 +42,7 @@ const EventExpenses: React.FC = () => {
   const [showAddExpenseForm, setShowAddExpenseForm] = useState(false);
   const [balanceReport, setBalanceReport] = useState<BalanceReportResponse | null>(null);
   const { user } = useSelector((state: RootState) => state.auth);
+  const [tasks, setTasks] = useState<TaskResponse[]>([]);
   
   const [expenseForm, setExpenseForm] = useState<ExpenseFormData>({
     description: '',
@@ -43,7 +50,8 @@ const EventExpenses: React.FC = () => {
     currency: 'RUB',
     split_method: 'equal',
     user_ids: [],
-    isEditing: false
+    isEditing: false,
+    task_id: undefined
   });
 
   useEffect(() => {
@@ -94,6 +102,11 @@ const EventExpenses: React.FC = () => {
       if (eventData.balanceReport) {
         setBalanceReport(eventData.balanceReport);
       }
+
+      // Получаем список задач события
+      if (eventData.tasks) {
+        setTasks(eventData.tasks.tasks || []);
+      }
     } catch (error) {
       console.error('Ошибка при загрузке данных события:', error);
       toast.error('Не удалось загрузить данные события');
@@ -128,7 +141,8 @@ const EventExpenses: React.FC = () => {
           amount: expenseForm.amount,
           currency: expenseForm.currency,
           split_method: expenseForm.split_method,
-          user_ids: expenseForm.user_ids
+          user_ids: expenseForm.user_ids,
+          task_id: expenseForm.task_id
         });
         toast.success('Расход успешно обновлен');
       } else {
@@ -140,7 +154,8 @@ const EventExpenses: React.FC = () => {
           amount: expenseForm.amount,
           currency: expenseForm.currency,
           split_method: expenseForm.split_method,
-          user_ids: expenseForm.user_ids
+          user_ids: expenseForm.user_ids,
+          task_id: expenseForm.task_id
         };
         
         await expenseService.createExpense(expenseData);
@@ -154,7 +169,8 @@ const EventExpenses: React.FC = () => {
         currency: 'RUB',
         split_method: 'equal',
         user_ids: [],
-        isEditing: false
+        isEditing: false,
+        task_id: undefined
       });
       
       // Закрываем форму
@@ -190,7 +206,8 @@ const EventExpenses: React.FC = () => {
       split_method: expense.split_method,
       user_ids: expense.shares.map(share => share.UserID),
       isEditing: true,
-      expense_id: expense.expense_id
+      expense_id: expense.expense_id,
+      task_id: expense.task_id
     });
     
     // Показываем форму
@@ -281,7 +298,8 @@ const EventExpenses: React.FC = () => {
               currency: 'RUB',
               split_method: 'equal',
               user_ids: [],
-              isEditing: false
+              isEditing: false,
+              task_id: undefined
             });
             setShowAddExpenseForm(true);
           }}
@@ -390,6 +408,7 @@ const EventExpenses: React.FC = () => {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Способ деления</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Дата</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Статус платежей</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">Задача</th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">Действия</th>
                   </tr>
                 </thead>
@@ -448,6 +467,13 @@ const EventExpenses: React.FC = () => {
                             );
                           })}
                         </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        {expense.task_id && (
+                          <Link to={`/events/${eventId}/tasks`} className="text-blue-600 hover:text-blue-900">
+                            Задача #{expense.task_id}
+                          </Link>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <button 
@@ -562,7 +588,7 @@ const EventExpenses: React.FC = () => {
                         {/* Способ деления */}
                         <div>
                           <label htmlFor="split_method" className="block text-sm font-medium text-gray-700">
-                            Способ деления *
+                            Метод разделения *
                           </label>
                           <select
                             id="split_method"
@@ -572,8 +598,33 @@ const EventExpenses: React.FC = () => {
                           >
                             <option value="equal">Поровну между всеми</option>
                             <option value="percentage">По процентам</option>
-                            <option value="amount">Разными суммами</option>
-                            <option value="custom">Пользовательский</option>
+                            <option value="amount">По сумме</option>
+                          </select>
+                        </div>
+
+                        {/* Привязка к задаче */}
+                        <div>
+                          <label htmlFor="task_id" className="block text-sm font-medium text-gray-700">
+                            Привязать к задаче (опционально)
+                          </label>
+                          <select
+                            id="task_id"
+                            value={expenseForm.task_id || ''}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              setExpenseForm({
+                                ...expenseForm, 
+                                task_id: value ? parseInt(value) : undefined
+                              });
+                            }}
+                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                          >
+                            <option value="">Не привязывать к задаче</option>
+                            {tasks.map(task => (
+                              <option key={task.id} value={task.id}>
+                                {task.title} (#{task.id})
+                              </option>
+                            ))}
                           </select>
                         </div>
                         

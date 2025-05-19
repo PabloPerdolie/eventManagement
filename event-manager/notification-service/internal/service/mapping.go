@@ -7,10 +7,11 @@ import (
 )
 
 var SupportedEvents = map[string]bool{
-	"event_created":     true,
-	"task_assigned":     true,
-	"expense_added":     true,
-	"participant_added": true,
+	"event_created":        true,
+	"task_assigned":        true,
+	"expense_added":        true,
+	"participant_added":    true,
+	"unpaid_expense_share": true,
 }
 
 func GenerateEmailContent(msg domain.NotificationMessage) (*model.EmailContent, error) {
@@ -78,6 +79,20 @@ func GenerateEmailContent(msg domain.NotificationMessage) (*model.EmailContent, 
 
 		if eventName, ok := msg.Data["event_name"].(string); ok {
 			body += fmt.Sprintf(" Event: %s", eventName)
+		}
+
+	case "unpaid_expense_share":
+		amount, ok := msg.Data["total_unpaid_amount"].(float64)
+		if !ok {
+			return nil, model.ErrInvalidNotificationData
+		}
+
+		subject = "You have unpaid shares"
+		body = fmt.Sprintf("You have unpaid share with total amount: %.2f", amount)
+		body += "."
+
+		if eventId, ok := msg.Data["event_id"].(int); ok {
+			body += fmt.Sprintf(" EventId: %d", eventId)
 		}
 
 	default:

@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
-import { CheckCircle, Clock, AlertCircle, XCircle, ChevronDown, ChevronRight, Trash2 } from 'lucide-react';
+import { CheckCircle, Clock, AlertCircle, XCircle, ChevronDown, ChevronRight, Trash2, DollarSign } from 'lucide-react';
 import { TaskResponse, TaskStatus } from '../../types/api';
-import { HierarchicalTask } from './types';
+import { HierarchicalTask, TaskExpense } from './types';
 import { getStatusIcon, getStatusColorClass, formatDate } from './taskUtils';
 import { toast } from 'react-toastify';
 
@@ -15,6 +15,7 @@ interface TaskItemProps {
   onToggleExpand: (taskId: number) => void;
   onUpdateStatus: (taskId: number, newStatus: TaskStatus) => void;
   onDelete?: (taskId: number) => Promise<void>;
+  onAddExpense?: (taskId: number) => void;
 }
 
 export const TaskItem: React.FC<TaskItemProps> = ({
@@ -26,7 +27,8 @@ export const TaskItem: React.FC<TaskItemProps> = ({
   animationKey,
   onToggleExpand,
   onUpdateStatus,
-  onDelete
+  onDelete,
+  onAddExpense
 }) => {
   const hasChildren = task.children && task.children.length > 0;
   
@@ -106,6 +108,81 @@ export const TaskItem: React.FC<TaskItemProps> = ({
     }
   };
   
+  // Функция для форматирования суммы в компактном виде
+  const formatAmount = (amount: number): string => {
+    if (amount >= 1000000) {
+      return `${(amount / 1000000).toFixed(1)}M`;
+    } else if (amount >= 1000) {
+      return `${(amount / 1000).toFixed(1)}K`;
+    } else {
+      return amount.toFixed(0);
+    }
+  };
+
+  // Подсчет общего количества расходов во всей иерархии задачи
+  const getTotalExpensesCount = (task: HierarchicalTask): number => {
+    let count = task.expenses?.length || 0;
+    
+    if (task.children && task.children.length > 0) {
+      task.children.forEach(child => {
+        count += getTotalExpensesCount(child);
+      });
+    }
+    
+    return count;
+  };
+  
+  // Компонент для отображения списка расходов
+  const ExpensesList = ({ expenses, indent = false }: { expenses: TaskExpense[] | undefined, indent?: boolean }) => {
+    if (!expenses || expenses.length === 0) return null;
+    
+    return (
+      <div className={`expenses-list ${indent ? 'pl-2 ml-2 border-l-2 border-green-200' : ''}`}>
+        {expenses.map((expense) => (
+          <div key={expense.expense_id} className="expense-item text-xs text-gray-600 flex items-center">
+            <DollarSign size={12} className="text-green-500 mr-1" />
+            <span className="truncate flex-1">{expense.description}</span>
+            <span className="ml-1 font-medium text-green-600">{expense.amount.toFixed(0)} {expense.currency}</span>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  // Рекурсивный рендер расходов дочерних задач
+  const renderChildExpenses = (tasks: HierarchicalTask[]) => {
+    if (!tasks || tasks.length === 0) return null;
+    
+    return tasks
+      // Фильтруем задачи, у которых есть либо собственные расходы, либо расходы у дочерних задач
+      .filter(child => 
+        // Есть ненулевые собственные расходы
+        (child.expenses && child.expenses.length > 0) || 
+        // Есть дочерние задачи с ненулевыми расходами
+        (child.children && child.children.some(c => c.totalExpenses && c.totalExpenses > 0.01))
+      )
+      .map(child => (
+        <div key={`exp-${child.id}`} className="child-expenses expenses-animation mt-1">
+          <div className="child-expense-header">
+            <span className="text-xs font-medium text-gray-700 truncate">{child.title}</span>
+            {child.totalExpenses && child.totalExpenses > 0.01 && (
+              <span className="text-xs text-green-700 font-medium ml-1">
+                {formatAmount(child.totalExpenses)}
+              </span>
+            )}
+          </div>
+          
+          {/* Собственные расходы дочерней задачи */}
+          {child.expenses && child.expenses.length > 0 && (
+            <ExpensesList expenses={child.expenses} indent={true} />
+          )}
+          
+          {/* Рекурсивно отображаем расходы дочерних задач */}
+          {child.children && child.children.length > 0 && renderChildExpenses(child.children)}
+        </div>
+      ));
+  };
+
   return (
     <div className={`task-item relative ${level === 0 ? 'mt-2' : ''}`}>
       {/* Соединительные линии */}
@@ -195,6 +272,23 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                   {childrenStats.percent}% завершено
                 </span>
               )}
+              
+              {/* Отображаем бейдж с общей суммой расходов ТОЛЬКО если расходы есть */}
+              {task.totalExpenses && task.totalExpenses > 0.01 && (
+                <span className="expenses-summary ml-2 flex items-center" title="Общая сумма всех расходов, включая подзадачи">
+                  <DollarSign size={12} className="mr-1" />
+                  {formatAmount(task.totalExpenses)}
+                  {task.expenses && task.expenses.length > 0 && task.children.some(c => c.totalExpenses && c.totalExpenses > 0.01) && (
+                    <span className="ml-1" title="Сумма собственных расходов этой задачи">
+                      ({formatAmount(task.expenses.reduce((sum, exp) => sum + exp.amount, 0))})
+                    </span>
+                  )}
+                  <span className="ml-1 text-xs text-green-700">
+                    ({getTotalExpensesCount(task)} шт.)
+                  </span>
+                </span>
+              )}
+              
               {onDelete && (
                 <button
                   onClick={(e) => {
@@ -206,6 +300,19 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                   title="Удалить задачу"
                 >
                   <Trash2 size={16} />
+                </button>
+              )}
+              {onAddExpense && (
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onAddExpense(task.id);
+                  }}
+                  className="ml-2 text-green-500 hover:text-green-700 transition-colors"
+                  title="Добавить расход к задаче"
+                >
+                  <DollarSign size={16} />
                 </button>
               )}
             </div>
@@ -223,6 +330,31 @@ export const TaskItem: React.FC<TaskItemProps> = ({
               )}
               <span className="text-xs">{formatDate(task.created_at)}</span>
             </div>
+            
+            {/* Отображаем расходы задачи */}
+            {task.expenses && task.expenses.length > 0 && (
+              <div className="mt-2">
+                <div className="text-xs font-medium text-gray-700 mb-1 flex items-center">
+                  <DollarSign size={12} className="text-green-600 mr-1" />
+                  <span>Расходы этой задачи:</span>
+                </div>
+                <ExpensesList expenses={task.expenses} />
+              </div>
+            )}
+
+            {/* Отображаем информацию о расходах дочерних задач */}
+            {task.isExpanded && task.children.some(child => 
+              (child.expenses && child.expenses.length > 0) || 
+              (child.children && child.children.some(c => c.totalExpenses && c.totalExpenses > 0.01))
+            ) && (
+              <div className="mt-2 expenses-animation">
+                <div className="text-xs font-medium text-gray-700 mb-1 flex items-center">
+                  <DollarSign size={12} className="text-green-600 mr-1" />
+                  <span>Расходы подзадач:</span>
+                </div>
+                {renderChildExpenses(task.children)}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -245,6 +377,8 @@ export const TaskItem: React.FC<TaskItemProps> = ({
               animationKey={animationKey}
               onToggleExpand={onToggleExpand}
               onUpdateStatus={onUpdateStatus}
+              onDelete={onDelete}
+              onAddExpense={onAddExpense}
             />
           ))}
         </div>

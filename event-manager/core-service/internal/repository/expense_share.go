@@ -203,3 +203,51 @@ func (r ExpenseShare) GetEventBalanceReport(ctx context.Context, eventId int) ([
 
 	return balances, nil
 }
+
+func (r ExpenseShare) ListAllUnpaidExpenseShares(ctx context.Context) ([]model.ExpenseShareUnpaid, error) {
+	query := `
+		SELECT 
+    		u.email,
+   		 	e.event_id,
+    		SUM(es.amount) AS total_amount
+		FROM 
+    		expense_share es
+		JOIN 
+    		expense e ON e.expense_id = es.expense_id
+		JOIN 
+    		users u ON u.user_id = es.user_id
+		WHERE 
+    		es.is_paid = false
+		GROUP BY 
+    		u.email, e.event_id
+		ORDER BY 
+    		e.event_id, total_amount DESC
+	`
+
+	rows, err := r.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, errors.WithMessage(err, "list all unpaid expense shares")
+	}
+	defer rows.Close()
+
+	shares := make([]model.ExpenseShareUnpaid, 0)
+	for rows.Next() {
+		var share model.ExpenseShareUnpaid
+		err := rows.Scan(
+			&share.Email,
+			&share.EventID,
+			&share.TotalUnpaidAmount,
+		)
+		if err != nil {
+			return nil, errors.WithMessage(err, "scan unpaid expense share")
+		}
+
+		shares = append(shares, share)
+	}
+
+	if rows.Err() != nil {
+		return nil, errors.WithMessage(rows.Err(), "rows err")
+	}
+
+	return shares, nil
+}

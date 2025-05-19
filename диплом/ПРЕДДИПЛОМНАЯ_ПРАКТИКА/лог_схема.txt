@@ -1,0 +1,107 @@
+Table Пользователи {
+  Имя_аккаунта varchar
+  Хэш_пароля text 
+  Почта varchar 
+  Активный boolean 
+  Удаленный boolean 
+  Роль varchar 
+  Дата_создания timestamp 
+}
+
+Table События {
+  // event_id int [pk, increment]
+  // organizer_id int [ref: > users.user_id]
+  Заголовок text 
+  Описание text 
+  Дата_начала timestamp 
+  Дата_конца timestamp 
+  Локация text
+  Статус_события varchar
+  Дата_создания timestamp 
+}
+
+Table Участник_события {
+  // event_participant_id int [pk, increment]
+  // event_id int [ref: > events.event_id]
+  // user_id int [ref: > users.user_id]
+  Роль varchar
+  Дата_присоединения timestamp
+  Подтверждение boolean
+}
+
+Table Задачи {
+  // task_id int [pk, increment]
+  // event_id int [ref: > events.event_id]
+  // parent_id int [ref: > tasks.task_id, default: null]
+  Заголовок text
+  Описание text
+  Стори_поинтс int
+  Приоритет varchar
+  Статус_задачи varchar
+  Дата_создания timestamp
+}
+
+Table Назначения_на_задачи {
+  // task_assignment_id int [pk, increment]
+  // task_id int [ref: > tasks.task_id]
+  // user_id int [ref: > users.user_id]
+  Дата_назначения timestamp
+  Дата_выполнения timestamp
+}
+
+Table Расходы {
+  // expense_id int [pk, increment]
+  // event_id int [ref: > events.event_id]
+  // task_id int [ref: > tasks.task_id]
+  // created_by int [ref: > users.user_id]
+  Описание text 
+  Сумма float 
+  Валюта varchar 
+  Метод_разделения text 
+  Дата_создания timestamp 
+}
+
+Table Доли_расходов {
+  // share_id int [pk, increment]
+  // expense_id int [ref: > expense.expense_id]
+  // user_id int [ref: > users.user_id]
+  Сумма float
+  Оплачено boolean
+  paid_at timestamp
+}
+
+Table Комментарии {
+  // comment_id int [pk, increment]
+  // event_id int [ref: > events.event_id]
+  // sender_id int [ref: > users.user_id]
+  // task_id int [ref: > tasks.task_id, default: null]
+  Тело_сообщения text 
+  Дата_создания timestamp 
+}
+
+
+
+
+Ref: "Пользователи"."Имя_аккаунта" < "Участник_события"."Роль"
+
+Ref: "Пользователи"."Имя_аккаунта" < "Назначения_на_задачи"."Дата_назначения"
+
+Ref: "Пользователи"."Имя_аккаунта" < "Комментарии"."Тело_сообщения"
+
+Ref: "Пользователи"."Имя_аккаунта" < "Доли_расходов"."Сумма"
+
+Ref: "Пользователи"."Имя_аккаунта" < "События"."Заголовок"
+
+Ref: "События"."Описание" < "Расходы"."Сумма"
+
+Ref: "Задачи"."Заголовок" < "Назначения_на_задачи"."Дата_назначения"
+
+Ref: "Расходы"."Описание" < "Доли_расходов"."Сумма"
+
+Ref: "Пользователи"."Имя_аккаунта" < "Расходы"."Сумма"
+
+Ref: "События"."Заголовок" < "Комментарии"."Тело_сообщения"
+
+Ref: "События"."Заголовок" < "Задачи"."Заголовок"
+
+Ref: "Участник_события"."Роль" < "События"."Заголовок"
