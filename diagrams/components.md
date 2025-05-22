@@ -6,8 +6,10 @@ end
 
 subgraph Серверная_часть
 APIGateway[API Gateway] -->|REST| CoreService[Core Service <br> Go]
+APIGateway -->|TCP| Cash[Кэш <br> Redis]
 APIGateway -->|RabbitMQ| Service[Notification Service <br> Go]
 APIGateway -->|RabbitMQ| CommunicationService[Communication Service <br> Go]
+APIGateway -->|SQL| Database[База данных <br> Go]
 CoreService -->|RabbitMQ| Service[Notification Service <br> Go]
 
 CoreService -->|SQL| Database[База данных <br> PostgreSQL]
